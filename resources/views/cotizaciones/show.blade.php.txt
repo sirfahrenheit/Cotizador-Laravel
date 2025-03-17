@@ -1,0 +1,99 @@
+@extends('adminlte::page')
+
+@section('title', 'Ver Cotización')
+
+@section('content_header')
+    <h1>Cotización #{{ $cotizacion->cotizacion_numero }}</h1>
+@stop
+
+@section('content')
+<div class="container">
+    <div class="header text-center">
+        <img src="{{ asset('img/logo.png') }}" alt="Logo" style="max-height: 80px;">
+    </div>
+
+    <div class="banner">
+        <h1>Cotización #{{ $cotizacion->cotizacion_numero }}</h1>
+        <div class="meta">
+            <p>Creada el {{ \Carbon\Carbon::parse($cotizacion->creation_date)->format('d/m/Y') }}
+                &mdash; Vence: {{ \Carbon\Carbon::parse($cotizacion->expiration_date)->format('d/m/Y') }}</p>
+        </div>
+        <div class="info-wrapper">
+            <div class="info-block">
+                <p><strong>Cliente:</strong> {{ $cotizacion->cliente->nombre ?? 'N/A' }}</p>
+                <p><strong>Dirección:</strong> {{ $cotizacion->cliente->direccion ?? 'N/A' }}</p>
+                <p><strong>Teléfono:</strong> {{ $cotizacion->cliente->telefono ?? 'N/A' }}</p>
+                <p><strong>Email:</strong> {{ $cotizacion->cliente->correo ?? 'N/A' }}</p>
+            </div>
+            <div class="info-block">
+                <p><strong>Responsable:</strong> {{ $cotizacion->usuario->name ?? 'N/A' }}</p>
+                <p><strong>Email:</strong> {{ $cotizacion->usuario->email ?? 'N/A' }}</p>
+            </div>
+        </div>
+
+        @if ($cotizacion->isExpired())
+            <div class="expired-message">Esta cotización ha vencido.</div>
+        @endif
+
+        <div class="comments">
+            <h3>Comentarios</h3>
+            <p>{{ $cotizacion->additional_notes ?? 'Ninguno' }}</p>
+        </div>
+    </div>
+
+    <div class="container items-section">
+        <h2>Productos y Servicios</h2>
+        @foreach ($cotizacion->items as $item)
+            <div class="item-card">
+                <div class="item-info">
+                    <h3>{{ $item->description }}</h3>
+                    <p><strong>Modelo:</strong> {{ $item->model }}</p>
+                    <p><strong>Cantidad:</strong> {{ $item->quantity }}</p>
+                    <p><strong>Descuento aplicado:</strong> {{ $cotizacion->discount_percentage }}%</p>
+                </div>
+                <div class="item-price">
+                    {{ $item->quantity }} x Q{{ number_format($item->unit_price, 2) }}<br>
+                    <span style="font-size: 0.9em;">Total: Q{{ number_format($item->quantity * $item->unit_price * (1 - $cotizacion->discount_percentage / 100), 2) }}</span>
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    <div class="totals">
+        <p><span class="totals-label">Subtotal:</span> Q{{ number_format($subtotal, 2) }}</p>
+        <p><span class="totals-label">Descuento:</span> Q{{ number_format($descuentoTotal, 2) }}</p>
+        <p style="font-weight:bold;">
+            <span class="totals-label">Total:</span>
+            Q{{ number_format($total, 2) }}
+        </p>
+    </div>
+
+    <div class="container payment-conditions">
+        <h3>Condiciones de Pago</h3>
+        <p>{{ $cotizacion->payment_conditions }}</p>
+    </div>
+
+    <div class="footer">
+        <p><strong>¿Tienes preguntas? Contáctanos</strong></p>
+        <p>{{ $cotizacion->usuario->name }} - {{ $cotizacion->usuario->email }}</p>
+
+        <button class="btn btn-primary" onclick="downloadQuote()">Descargar PDF</button>
+        <button class="btn btn-secondary" onclick="window.print()">Imprimir</button>
+
+        @if(Auth::user()->role == 'admin')
+            <a href="{{ route('cotizaciones.edit', $cotizacion->cotizacion_id) }}" class="btn btn-warning">Editar</a>
+            <form action="{{ route('cotizaciones.destroy', $cotizacion->cotizacion_id) }}" method="POST" style="display:inline;">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger" onclick="return confirm('¿Seguro que deseas eliminar esta cotización?')">Eliminar</button>
+            </form>
+        @endif
+    </div>
+</div>
+
+<script>
+    function downloadQuote() {
+        window.location.href = "{{ route('cotizaciones.pdf', $cotizacion->cotizacion_id) }}";
+    }
+</script>
+@stop

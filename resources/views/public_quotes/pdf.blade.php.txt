@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cotización #{{ $quote->cotizacion_numero }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header img { max-height: 80px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        table, th, td { border: 1px solid #000; }
+        th, td { padding: 5px; text-align: left; }
+        .totals p { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="{{ public_path('images/mi-logo.jpg') }}" alt="Logo">
+        <h2>Cotización #{{ $quote->cotizacion_numero }}</h2>
+    </div>
+
+    <h3>Datos del Cliente</h3>
+    <p><strong>Nombre:</strong> {{ $quote->client->nombre }}</p>
+    <p><strong>Dirección:</strong> {{ $quote->client->direccion }}</p>
+    <p><strong>Teléfono:</strong> {{ $quote->client->telefono }}</p>
+    <p><strong>Correo:</strong> {{ $quote->client->correo }}</p>
+    <hr>
+
+    <h3>Detalles de la Cotización</h3>
+    <p><strong>Fecha de Creación:</strong> {{ $creationDateFormatted }}</p>
+    <p><strong>Fecha de Expiración:</strong> {{ $expirationDateFormatted }}</p>
+    <p><strong>Condiciones de Pago:</strong> {{ $quote->payment_conditions }}</p>
+    <p><strong>Comentarios:</strong> {{ $quote->additional_notes }}</p>
+    <hr>
+
+    <h3>Productos y Servicios</h3>
+    @if($quote->items->isEmpty())
+        <p>No se encontraron ítems.</p>
+    @else
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Modelo</th>
+                    <th>Descripción</th>
+                    <th>Cantidad</th>
+                    <th>Precio Unitario</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($quote->items as $index => $item)
+                    <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $item->modelo }}</td>
+                        <td>{{ $item->description }}</td>
+                        <td>{{ $item->quantity }}</td>
+                        <td>Q{{ number_format($item->unit_price, 2) }}</td>
+                        <td>Q{{ number_format($item->total_price, 2) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    <h3>Totales</h3>
+    <p><strong>Subtotal:</strong> Q{{ number_format($subtotal, 2) }}</p>
+    <p><strong>Descuento:</strong> Q{{ number_format($descuentoTotal, 2) }}</p>
+    <p><strong>Total:</strong> Q{{ number_format($total, 2) }}</p>
+</body>
+</html>
