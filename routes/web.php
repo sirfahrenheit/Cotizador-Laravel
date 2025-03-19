@@ -7,6 +7,7 @@ use App\Http\Controllers\CotizacionController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\WorkOrderController;
 use App\Http\Controllers\PublicQuoteController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -43,11 +44,16 @@ Route::middleware(['auth', 'tech'])->prefix('tech')->name('tech.')->group(functi
     Route::patch('work_orders/{workOrder}', [WorkOrderController::class, 'updateForTech'])->name('work_orders.update');
 });
 
-// Ruta para autorizar una cotización (solo admin o el usuario que deba autorizar)
+// Rutas de configuración (solo admin)
+Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings.index');
+    Route::post('/settings', [SettingsController::class, 'update'])->name('admin.settings.update');
+});
+
+// Ruta para autorizar una cotización (solo admin)
 Route::patch('cotizaciones/{cotizacion}/authorize', [CotizacionController::class, 'authorizeQuote'])
      ->name('cotizaciones.authorize')
      ->middleware(['auth', 'admin']);
-
 
 // Rutas públicas para la vista de cotización y descarga de PDF
 Route::get('/public/quote/{token}', [PublicQuoteController::class, 'view'])->name('quotes.public_view');

@@ -8,13 +8,12 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you can change the default title of your admin panel.
-    |
     | For detailed instructions you can look the title section here:
     | https://github.com/jeroennoten/Laravel-AdminLTE/wiki/Basic-Configuration
     |
     */
 
-    'title' => 'AdminLTE 3',
+    'title' => 'Distribuidora Jadi',
     'title_prefix' => '',
     'title_postfix' => '',
 
@@ -24,33 +23,19 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you can activate the favicon.
-    |
     | For detailed instructions you can look the favicon section here:
     | https://github.com/jeroennoten/Laravel-AdminLTE/wiki/Basic-Configuration
     |
     */
 
     'use_ico_only' => false,
-    'use_full_favicon' => false,
+    'use_full_favicon' => true,
 
-    /*
-    |--------------------------------------------------------------------------
-    | Google Fonts
-    |--------------------------------------------------------------------------
-    |
-    | Here you can allow or not the use of external google fonts. Disabling the
-    | google fonts may be useful if your admin panel internet access is
-    | restricted somehow.
-    |
-    | For detailed instructions you can look the google fonts section here:
-    | https://github.com/jeroennoten/Laravel-AdminLTE/wiki/Basic-Configuration
-    |
-    */
-
-    'google_fonts' => [
-        'allowed' => true,
+    'favicon' => [
+        'ico'         => null, // Ejemplo: 'images/favicon.ico'
+        'icon'        => '/images/mi-logo.png',
+        'apple_icon'  => '/images/mi-logo.png',
     ],
-
     /*
     |--------------------------------------------------------------------------
     | Admin Panel Logo
