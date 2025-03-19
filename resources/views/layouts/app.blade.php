@@ -5,16 +5,39 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ config('app.name', 'Distribuidora Jadi') }}</title>
+
+        <!-- Favicon con el logo de la empresa -->
+        <link rel="shortcut icon" href="{{ asset('images/mi-logo.jpg') }}" type="image/png">
 
         <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
+        <!-- Scripts y estilos -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+        <style>
+            /* Preloader: pantalla de carga con el logo */
+            #preloader {
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 9999;
+                width: 100%;
+                height: 100%;
+                background: #fff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        </style>
     </head>
-    <body class="font-sans antialiased">
+    <body class="hold-transition sidebar-mini {{ session('dark_mode', false) ? 'dark-mode' : '' }}">
+        <!-- Preloader -->
+        <div id="preloader">
+            <img src="{{ asset('images/mi-logo.jpg') }}" alt="{{ config('app.name', 'Distribuidora Jadi') }} Logo" class="max-w-xs">
+        </div>
+
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
             @include('layouts.navigation')
 
@@ -32,5 +55,15 @@
                 {{ $slot }}
             </main>
         </div>
+
+        <!-- Scripts -->
+        <script>
+            // Oculta el preloader cuando la página termina de cargar
+            window.addEventListener('load', function() {
+                var preloader = document.getElementById('preloader');
+                preloader.style.display = 'none';
+            });
+        </script>
     </body>
 </html>
+
