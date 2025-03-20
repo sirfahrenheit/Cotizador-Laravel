@@ -12,11 +12,19 @@ class ProductController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function index()
-    {
-        $products = Product::orderBy('modelo')->get();
-        return view('products.index', compact('products'));
+    public function index(Request $request)
+{
+    $query = Product::query();
+
+    if ($request->filled('search')) {
+        $search = trim($request->input('search'));
+        $query->where('modelo', 'LIKE', "%{$search}%");
     }
+
+    $products = $query->orderBy('modelo')->get();
+
+    return view('products.index', compact('products'));
+}
 
     /**
      * Muestra el formulario para crear un nuevo producto.

@@ -9,31 +9,36 @@
 @section('content')
 <div class="container">
     <a href="{{ route('products.create') }}" class="btn btn-primary mb-3">Crear Producto</a>
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
+
+    <!-- Barra de búsqueda -->
+    <div class="mb-3">
+        <form action="{{ route('products.index') }}" method="GET" class="form-inline">
+            <div class="input-group">
+                <input type="text" name="search" class="form-control" placeholder="Buscar por modelo..." value="{{ request('search') }}">
+                <div class="input-group-append">
+                    <button type="submit" class="btn btn-secondary">Buscar</button>
+                </div>
+            </div>
+        </form>
+    </div>
 
     <!-- Versión en tarjetas (mobile) -->
     <div class="card-layout">
         @forelse($products as $product)
-            <div class="card mb-3">
+            <div class="card mb-3 shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title">{{ $product->modelo }}</h5>
                     <p class="card-text">
-                        <strong>Descripción:</strong> {{ $product->descripcion ?? 'No especificada' }} <br>
-                        <strong>Precio:</strong> Q {{ number_format($product->precio, 2, '.', ',') }} <br>
+                        <strong>Descripción:</strong> {{ $product->descripcion ?? 'No especificada' }}<br>
+                        <strong>Precio:</strong> Q{{ number_format($product->precio, 2, '.', ',') }}
                     </p>
                     <div class="mt-2">
                         <a href="{{ route('products.show', $product->producto_id) }}" class="btn btn-info btn-sm">Ver</a>
                         <a href="{{ route('products.edit', $product->producto_id) }}" class="btn btn-warning btn-sm">Editar</a>
-                        <form action="{{ route('products.destroy', $product->producto_id) }}"
-                              method="POST" style="display:inline;">
+                        <form action="{{ route('products.destroy', $product->producto_id) }}" method="POST" style="display:inline;">
                             @csrf
                             @method('DELETE')
-                            <button class="btn btn-danger btn-sm"
-                                    onclick="return confirm('¿Está seguro de eliminar este producto?')">
-                                Eliminar
-                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="return confirm('¿Está seguro de eliminar este producto?')">Eliminar</button>
                         </form>
                     </div>
                 </div>
@@ -61,18 +66,14 @@
                     <td>{{ $product->producto_id }}</td>
                     <td>{{ $product->modelo }}</td>
                     <td>{{ $product->descripcion }}</td>
-                    <td>Q {{ number_format($product->precio, 2, '.', ',') }}</td>
+                    <td>Q{{ number_format($product->precio, 2, '.', ',') }}</td>
                     <td class="d-flex justify-content-start">
                         <a href="{{ route('products.show', $product->producto_id) }}" class="btn btn-info btn-sm mr-2">Ver</a>
                         <a href="{{ route('products.edit', $product->producto_id) }}" class="btn btn-warning btn-sm mr-2">Editar</a>
-                        <form action="{{ route('products.destroy', $product->producto_id) }}"
-                              method="POST" style="display:inline;">
+                        <form action="{{ route('products.destroy', $product->producto_id) }}" method="POST" style="display:inline;">
                             @csrf
                             @method('DELETE')
-                            <button class="btn btn-danger btn-sm"
-                                    onclick="return confirm('¿Está seguro de eliminar este producto?')">
-                                Eliminar
-                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="return confirm('¿Está seguro de eliminar este producto?')">Eliminar</button>
                         </form>
                     </td>
                 </tr>
@@ -89,27 +90,27 @@
 
 @section('css')
 <style>
-/* 
-   Ocultamos la tabla en pantallas pequeñas (max-width: 767px)
-   y mostramos el layout de tarjetas.
-   A partir de 768px (md) en adelante, se hace lo contrario.
-*/
-@media (max-width: 767px) {
-    .table-layout {
-        display: none; /* Oculta la tabla en móviles */
+    @media (max-width: 767px) {
+        .table-layout {
+            display: none;
+        }
+        .card-layout {
+            display: block;
+        }
     }
-    .card-layout {
-        display: block; /* Muestra las tarjetas en móviles */
+    @media (min-width: 768px) {
+        .table-layout {
+            display: block;
+        }
+        .card-layout {
+            display: none;
+        }
     }
-}
-
-@media (min-width: 768px) {
-    .table-layout {
-        display: block; /* Muestra la tabla en escritorio */
-    }
-    .card-layout {
-        display: none; /* Oculta las tarjetas en escritorio */
-    }
-}
 </style>
+@stop
+
+@section('js')
+<script>
+    console.log('Listado de productos con vista responsive cargado.');
+</script>
 @stop

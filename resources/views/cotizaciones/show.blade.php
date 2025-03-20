@@ -77,20 +77,19 @@
     </div>
 
     <!-- Acciones -->
-@if($cotizacion->status === 'pendiente')
-    <form action="{{ route('cotizaciones.authorize', $cotizacion->cotizacion_id) }}" method="POST" style="display:inline;">
-        @csrf
-        @method('PATCH')
-        <button type="submit" class="btn btn-success" onclick="return confirm('¿Autorizar esta cotización?')">Autorizar Cotización</button>
-    </form>
-@endif
-
-    <div class="mt-3">
-        <a href="{{ route('cotizaciones.index') }}" class="btn btn-secondary">Volver al listado</a>
-        <a href="{{ route('cotizaciones.edit', $cotizacion->cotizacion_id) }}" class="btn btn-warning">Editar Cotización</a>
-        <a href="{{ route('quotes.public_view', ['token' => $cotizacion->cotizacion_token]) }}" class="btn btn-info">Vista Cliente</a>
-        <a href="{{ route('quotes.pdf', ['token' => $cotizacion->cotizacion_token]) }}" class="btn btn-primary">Descargar PDF</a>
-        <form action="{{ route('cotizaciones.destroy', $cotizacion->cotizacion_id) }}" method="POST" style="display:inline;">
+    <div class="d-flex flex-wrap justify-content-center mt-3">
+        <a href="{{ route('cotizaciones.index') }}" class="btn btn-secondary m-1">Volver al listado</a>
+        <a href="{{ route('cotizaciones.edit', $cotizacion->cotizacion_id) }}" class="btn btn-warning m-1">Editar Cotización</a>
+        <a href="{{ route('quotes.public_view', ['token' => $cotizacion->cotizacion_token]) }}" class="btn btn-info m-1">Vista Cliente</a>
+        <a href="{{ route('quotes.pdf', ['token' => $cotizacion->cotizacion_token]) }}" class="btn btn-primary m-1">Descargar PDF</a>
+        @if($cotizacion->status === 'pendiente')
+            <form action="{{ route('cotizaciones.authorize', $cotizacion->cotizacion_id) }}" method="POST" class="m-1">
+                @csrf
+                @method('PATCH')
+                <button type="submit" class="btn btn-success" onclick="return confirm('¿Autorizar esta cotización?')">Autorizar Cotización</button>
+            </form>
+        @endif
+        <form action="{{ route('cotizaciones.destroy', $cotizacion->cotizacion_id) }}" method="POST" class="m-1">
             @csrf
             @method('DELETE')
             <button class="btn btn-danger" onclick="return confirm('¿Está seguro de eliminar esta cotización?')">Eliminar Cotización</button>
@@ -103,12 +102,6 @@
 <style>
     .card {
         margin-bottom: 20px;
-    }
-    /* Opcional: ajustar la responsividad de la tabla */
-    @media (max-width: 767px) {
-        .table-responsive {
-            overflow-x: auto;
-        }
     }
 </style>
 @stop

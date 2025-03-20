@@ -37,6 +37,11 @@
             <input type="email" name="correo" id="correo" class="form-control" value="{{ old('correo', $client->correo) }}">
         </div>
 
+        <div class="form-group">
+            <label for="direccion">Dirección:</label>
+            <input type="text" name="direccion" id="direccion" class="form-control" value="{{ old('direccion', $client->direccion) }}">
+        </div>
+
         <button type="submit" class="btn btn-primary">Actualizar Cliente</button>
         <a href="{{ route('clients.index') }}" class="btn btn-secondary">Cancelar</a>
     </form>
