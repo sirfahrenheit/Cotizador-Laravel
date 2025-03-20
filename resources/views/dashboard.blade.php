@@ -75,7 +75,7 @@
             </div>
         </div>
 
-        <!-- Tarjeta con gráfica de Top productos vendidos -->
+        <!-- Tarjeta con gráfica de Top Productos Vendidos -->
         <div class="row">
             <div class="col-md-12 mb-4">
                 <div class="card shadow-sm">
@@ -104,6 +104,10 @@
 @section('js')
 <!-- Incluir Chart.js desde CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Incluir Socket.io desde CDN -->
+<script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+<!-- Incluir SweetAlert2 para notificaciones -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     @if(Auth::user()->role == 'admin')
@@ -132,13 +136,9 @@ document.addEventListener("DOMContentLoaded", function() {
         });
 
         // =============== Gráfica: Estatus de Cotizaciones ===============
-        // Asumiendo que $quoteStatusData = ['pendiente' => 5, 'autorizada' => 3, 'rechazada' => 2, ...]
-        // Lo convertimos a un objeto JS:
         var quoteStatusData = @json($quoteStatusData ?? []);
-        // Obtenemos las etiquetas y valores
         var statusLabels = Object.keys(quoteStatusData);
         var statusValues = Object.values(quoteStatusData);
-
         var ctxStatus = document.getElementById('quoteStatusChart').getContext('2d');
         var quoteStatusChart = new Chart(ctxStatus, {
             type: 'pie',
@@ -162,11 +162,9 @@ document.addEventListener("DOMContentLoaded", function() {
         });
 
         // =============== Gráfica: Top Productos Vendidos ===============
-        // Asumiendo que $topProductsData = ['Laptop' => 10, 'Monitor' => 7, 'Teclado' => 5, ...]
         var topProductsData = @json($topProductsData ?? []);
         var productLabels = Object.keys(topProductsData);
         var productValues = Object.values(topProductsData);
-
         var ctxProducts = document.getElementById('topProductsChart').getContext('2d');
         var topProductsChart = new Chart(ctxProducts, {
             type: 'bar',
@@ -186,6 +184,22 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 }
             }
+        });
+
+        // =============== Notificaciones en Tiempo Real ===============
+        // Conexión a Node.js (ajusta la URL y puerto según corresponda)
+        const socket = io('http://127.0.0.1:3000');
+        socket.on('orderUpdated', (data) => {
+            // Muestra notificación con SweetAlert2
+            Swal.fire({
+                icon: 'info',
+                title: 'Orden de Trabajo Actualizada',
+                text: `La orden #${data.order_id} fue actualizada por ${data.updated_by}.`,
+                toast: true,
+                position: 'top-right',
+                timer: 5000,
+                showConfirmButton: false,
+            });
         });
     @endif
 });

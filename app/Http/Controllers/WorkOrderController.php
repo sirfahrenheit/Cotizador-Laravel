@@ -9,14 +9,19 @@ use Illuminate\Support\Facades\Auth;
 
 class WorkOrderController extends Controller
 {
-    // Métodos para Admin:
+    // ============================
+    // Métodos para Administradores
+    // ============================
 
     /**
      * Muestra el listado de órdenes de trabajo para admin.
      */
     public function index()
     {
-        $orders = WorkOrder::with('tecnico')->orderBy('fecha', 'desc')->get();
+        $orders = WorkOrder::with('tecnico')
+            ->orderBy('fecha', 'desc')
+            ->get();
+
         return view('work_orders.index', compact('orders'));
     }
 
@@ -44,7 +49,7 @@ class WorkOrderController extends Controller
         WorkOrder::create($validated);
 
         return redirect()->route('work_orders.index')
-                ->with('success', 'Orden de trabajo creada correctamente.');
+            ->with('success', 'Orden de trabajo creada correctamente.');
     }
 
     /**
@@ -70,17 +75,17 @@ class WorkOrderController extends Controller
     public function update(Request $request, WorkOrder $workOrder)
     {
         $validated = $request->validate([
-            'tareas'     => 'required|string',
-            'avances'    => 'nullable|string',
-            'solicitudes'=> 'nullable|string',
-            'estado'     => 'required|in:pendiente,finalizado',
-            'tecnico_id' => 'required|exists:users,id',
+            'tareas'      => 'required|string',
+            'avances'     => 'nullable|string',
+            'solicitudes' => 'nullable|string',
+            'estado'      => 'required|in:pendiente,finalizado',
+            'tecnico_id'  => 'required|exists:users,id',
         ]);
 
         $workOrder->update($validated);
 
         return redirect()->route('work_orders.index')
-                ->with('success', 'Orden de trabajo actualizada correctamente.');
+            ->with('success', 'Orden de trabajo actualizada correctamente.');
     }
 
     /**
@@ -91,10 +96,12 @@ class WorkOrderController extends Controller
         $workOrder->delete();
 
         return redirect()->route('work_orders.index')
-                ->with('success', 'Orden de trabajo eliminada correctamente.');
+            ->with('success', 'Orden de trabajo eliminada correctamente.');
     }
 
-    // Métodos para Técnicos:
+    // ============================
+    // Métodos para Técnicos
+    // ============================
 
     /**
      * Muestra el listado de órdenes asignadas al técnico.
@@ -102,8 +109,9 @@ class WorkOrderController extends Controller
     public function indexForTech()
     {
         $orders = WorkOrder::where('tecnico_id', Auth::id())
-                    ->orderBy('fecha', 'desc')
-                    ->get();
+            ->orderBy('fecha', 'desc')
+            ->get();
+
         return view('tech.work_orders.index', compact('orders'));
     }
 
@@ -115,6 +123,7 @@ class WorkOrderController extends Controller
         if ($workOrder->tecnico_id != Auth::id()) {
             abort(403, 'No tienes permiso para ver esta orden.');
         }
+
         return view('tech.work_orders.show', compact('workOrder'));
     }
 
@@ -126,6 +135,7 @@ class WorkOrderController extends Controller
         if ($workOrder->tecnico_id != Auth::id()) {
             abort(403, 'No tienes permiso para editar esta orden.');
         }
+
         return view('tech.work_orders.edit', compact('workOrder'));
     }
 
@@ -138,15 +148,21 @@ class WorkOrderController extends Controller
             abort(403, 'No tienes permiso para actualizar esta orden.');
         }
 
+        // Si la orden ya está finalizada, no se permiten cambios
+        if ($workOrder->estado === 'finalizado') {
+            return redirect()->route('tech.work_orders.index')
+                ->with('error', 'Esta orden de trabajo está finalizada y no se pueden realizar cambios.');
+        }
+
         $validated = $request->validate([
-            'avances'    => 'required|string',
-            'solicitudes'=> 'required|string',
-            'estado'     => 'required|in:pendiente,finalizado',
+            'avances'     => 'required|string',
+            'solicitudes' => 'required|string',
+            'estado'      => 'required|in:pendiente,finalizado',
         ]);
 
         $workOrder->update($validated);
 
         return redirect()->route('tech.work_orders.index')
-                ->with('success', 'Orden de trabajo actualizada correctamente.');
+            ->with('success', 'Orden de trabajo actualizada correctamente.');
     }
 }

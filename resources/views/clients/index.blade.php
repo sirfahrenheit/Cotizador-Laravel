@@ -9,9 +9,22 @@
 @section('content')
 <div class="container">
     <a href="{{ route('clients.create') }}" class="btn btn-primary mb-3">Crear Cliente</a>
+
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
+
+    <!-- Barra de búsqueda -->
+    <div class="mb-3">
+        <form action="{{ route('clients.index') }}" method="GET" class="form-inline">
+            <div class="input-group">
+                <input type="text" name="search" class="form-control" placeholder="Buscar por nombre..." value="{{ request('search') }}">
+                <div class="input-group-append">
+                    <button type="submit" class="btn btn-secondary">Buscar</button>
+                </div>
+            </div>
+        </form>
+    </div>
 
     <!-- Versión en tarjetas (mobile) -->
     <div class="card-layout">
@@ -27,14 +40,10 @@
                     <div class="mt-2">
                         <a href="{{ route('clients.show', $client->cliente_id) }}" class="btn btn-info btn-sm">Ver</a>
                         <a href="{{ route('clients.edit', $client->cliente_id) }}" class="btn btn-warning btn-sm">Editar</a>
-                        <form action="{{ route('clients.destroy', $client->cliente_id) }}"
-                              method="POST" style="display:inline;">
+                        <form action="{{ route('clients.destroy', $client->cliente_id) }}" method="POST" style="display:inline;">
                             @csrf
                             @method('DELETE')
-                            <button class="btn btn-danger btn-sm"
-                                    onclick="return confirm('¿Está seguro de eliminar este cliente?')">
-                                Eliminar
-                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="return confirm('¿Está seguro de eliminar este cliente?')">Eliminar</button>
                         </form>
                     </div>
                 </div>
@@ -68,14 +77,10 @@
                     <td style="white-space: nowrap;">
                         <a href="{{ route('clients.show', $client->cliente_id) }}" class="btn btn-info btn-sm">Ver</a>
                         <a href="{{ route('clients.edit', $client->cliente_id) }}" class="btn btn-warning btn-sm">Editar</a>
-                        <form action="{{ route('clients.destroy', $client->cliente_id) }}"
-                              method="POST" style="display:inline;">
+                        <form action="{{ route('clients.destroy', $client->cliente_id) }}" method="POST" style="display:inline;">
                             @csrf
                             @method('DELETE')
-                            <button class="btn btn-danger btn-sm"
-                                    onclick="return confirm('¿Está seguro de eliminar este cliente?')">
-                                Eliminar
-                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="return confirm('¿Está seguro de eliminar este cliente?')">Eliminar</button>
                         </form>
                     </td>
                 </tr>
@@ -92,33 +97,27 @@
 
 @section('css')
 <style>
-/* 
-   Ocultamos la tabla en pantallas pequeñas (max-width: 767px)
-   y mostramos el layout de tarjetas.
-   A partir de 768px (md) en adelante, se hace lo contrario.
-*/
-@media (max-width: 767px) {
-    .table-layout {
-        display: none; /* Oculta la tabla en móviles */
+    @media (max-width: 767px) {
+        .table-layout {
+            display: none;
+        }
+        .card-layout {
+            display: block;
+        }
     }
-    .card-layout {
-        display: block; /* Muestra las tarjetas en móviles */
+    @media (min-width: 768px) {
+        .table-layout {
+            display: block;
+        }
+        .card-layout {
+            display: none;
+        }
     }
-}
-
-@media (min-width: 768px) {
-    .table-layout {
-        display: block; /* Muestra la tabla en escritorio */
-    }
-    .card-layout {
-        display: none; /* Oculta las tarjetas en escritorio */
-    }
-}
 </style>
 @stop
 
 @section('js')
 <script>
-    console.log('Listado de clientes con vista responsive (tarjetas en mobile, tabla en desktop).');
+    console.log('Listado de clientes con vista responsive.');
 </script>
 @stop

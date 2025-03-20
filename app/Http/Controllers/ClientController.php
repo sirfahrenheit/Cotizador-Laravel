@@ -8,12 +8,19 @@ use Illuminate\Http\Request;
 class ClientController extends Controller
 {
     // Muestra la lista de clientes
-    public function index()
-    {
-        $clients = Client::all();
-        return view('clients.index', compact('clients'));
+    public function index(Request $request)
+{
+    $query = Client::query();
+
+    if ($request->filled('search')) {
+        $search = trim($request->input('search'));
+        $query->where('nombre', 'LIKE', "%{$search}%");
     }
 
+    $clients = $query->orderBy('nombre')->get();
+
+    return view('clients.index', compact('clients'));
+}
     // Muestra el formulario para crear un cliente
     public function create()
     {
