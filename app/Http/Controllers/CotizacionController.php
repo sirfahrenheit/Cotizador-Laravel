@@ -70,6 +70,7 @@ class CotizacionController extends Controller
         $token = Str::random(32);
         $quoteNumber = date("YmdHis");
 
+        // Crear la cotización
         $cotizacion = Cotizacion::create([
             'user_id'            => $user->id,
             'cliente_id'         => $validatedData['cliente_id'],
@@ -81,6 +82,7 @@ class CotizacionController extends Controller
             'status'             => 'pendiente',
         ]);
 
+        // Calcular subtotal y crear QuoteItems
         $subtotal = 0;
         foreach ($products as $index => $itemData) {
             $quantity  = floatval($itemData['quantity'] ?? 0);
@@ -91,7 +93,7 @@ class CotizacionController extends Controller
             QuoteItem::create([
                 'cotizacion_id' => $cotizacion->cotizacion_id,
                 'line_order'    => $index + 1,
-                'modelo'        => $itemData['model'] ?? '',
+                'modelo'        => $itemData['model'] ?? '',  // se guarda el "model" que llega del front
                 'description'   => $itemData['description'] ?? '',
                 'quantity'      => $quantity,
                 'unit_price'    => $unitPrice,
@@ -99,18 +101,20 @@ class CotizacionController extends Controller
             ]);
         }
 
+        // Calcular descuento y total
         $discountPercentage = floatval($validatedData['discount_percentage'] ?? 0);
         $discountAmount = $subtotal * ($discountPercentage / 100);
         $total = $subtotal - $discountAmount;
 
+        // Guardar los montos finales
         $cotizacion->update([
             'subtotal' => $subtotal,
             'discount' => $discountAmount,
             'total'    => $total,
         ]);
 
+        // Enviar correo si el cliente tiene email
         $publicLink = route('quotes.public_view', ['token' => $token]);
-
         $cliente = $cotizacion->client;
         if ($cliente && !empty($cliente->correo)) {
             Mail::to($cliente->correo)->send(new CotizacionNotificacion($cotizacion, $publicLink));
@@ -148,8 +152,33 @@ class CotizacionController extends Controller
     {
         $clientes = Client::all();
         $products = Product::all();
-        $itemsJson = $cotizacion->items->toJson();
-        return view('cotizaciones.edit', compact('cotizacion', 'clientes', 'products', 'itemsJson'));
+
+        // Convertir los QuoteItems a un arreglo con las claves que tu JS espera
+        // (product_id, model, description, quantity, unit_price).
+        // Si no almacenas 'product_id' en la DB, hacemos un mejor esfuerzo
+        // buscando un producto con el mismo "modelo" para asignar su ID.
+        $allProducts = Product::all();
+
+        $itemsJson = $cotizacion->items->map(function ($item) use ($allProducts) {
+            // Buscar en la lista de productos aquel que tenga el mismo "modelo"
+            $foundProduct = $allProducts->firstWhere('modelo', $item->modelo);
+            $productId = $foundProduct ? $foundProduct->producto_id : 0;
+
+            return [
+                'product_id'  => $productId,              // si no hay match, será 0
+                'model'       => $item->modelo,           // la etiqueta que mostrará el front
+                'description' => $item->description,
+                'quantity'    => $item->quantity,
+                'unit_price'  => $item->unit_price,
+            ];
+        })->toJson();
+
+        return view('cotizaciones.edit', [
+            'cotizacion' => $cotizacion,
+            'clientes'   => $clientes,
+            'products'   => $products,
+            'itemsJson'  => $itemsJson
+        ]);
     }
 
     /**
@@ -166,6 +195,7 @@ class CotizacionController extends Controller
             'discount_percentage'  => 'nullable|numeric|min:0|max:100'
         ]);
 
+        // Actualizar datos principales de la cotización
         $cotizacion->update([
             'cliente_id'         => $validatedData['cliente_id'],
             'expiration_date'    => $validatedData['expiration_date'],
@@ -173,6 +203,7 @@ class CotizacionController extends Controller
             'additional_notes'   => $validatedData['additional_notes'] ?? null,
         ]);
 
+        // Decodificar los productos
         $products = json_decode($validatedData['products_data'], true);
         if (!is_array($products) || count($products) < 1) {
             return redirect()->back()
@@ -180,8 +211,10 @@ class CotizacionController extends Controller
                 ->withInput();
         }
 
+        // Eliminar los items previos
         $cotizacion->items()->delete();
 
+        // Calcular nuevo subtotal y crear QuoteItems
         $subtotal = 0;
         foreach ($products as $index => $itemData) {
             $quantity  = floatval($itemData['quantity'] ?? 0);
@@ -200,6 +233,7 @@ class CotizacionController extends Controller
             ]);
         }
 
+        // Calcular descuento y total
         $discountPercentage = floatval($validatedData['discount_percentage'] ?? 0);
         $discountAmount = $subtotal * ($discountPercentage / 100);
         $total = $subtotal - $discountAmount;
@@ -239,6 +273,22 @@ class CotizacionController extends Controller
     }
 
     /**
+     * Rechaza la cotización.
+     */
+    public function rejectQuote($id)
+    {
+        $cotizacion = Cotizacion::findOrFail($id);
+
+        if ($cotizacion->status !== 'pendiente') {
+            return redirect()->back()->with('error', 'Esta cotización no puede ser rechazada.');
+        }
+
+        $cotizacion->update([
+            'status' => 'rechazada'
+        ]);
+    }
+
+    /**
      * Elimina una cotización.
      */
     public function destroy(Cotizacion $cotizacion)
@@ -248,5 +298,3 @@ class CotizacionController extends Controller
             ->with('success', 'Cotización eliminada exitosamente.');
     }
 }
-
-

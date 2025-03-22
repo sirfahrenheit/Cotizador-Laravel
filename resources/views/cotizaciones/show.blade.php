@@ -88,6 +88,11 @@
                 @method('PATCH')
                 <button type="submit" class="btn btn-success" onclick="return confirm('¿Autorizar esta cotización?')">Autorizar Cotización</button>
             </form>
+            <form action="{{ route('cotizaciones.reject', $cotizacion->cotizacion_id) }}" method="POST" class="m-1">
+                @csrf
+                @method('PATCH')
+                <button type="submit" class="btn btn-danger" onclick="return confirm('¿Rechazar esta cotización?')">Rechazar Cotización</button>
+            </form>
         @endif
         <form action="{{ route('cotizaciones.destroy', $cotizacion->cotizacion_id) }}" method="POST" class="m-1">
             @csrf
