@@ -8,6 +8,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\WorkOrderController;
 use App\Http\Controllers\PublicQuoteController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\Auth\RegisteredUserController; // <-- Asegúrate de que el namespace sea correcto
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -24,6 +25,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+// *** RUTAS DE REGISTRO - SOLO ADMIN ***
+Route::middleware(['auth', 'admin'])->group(function () {
+    // Aquí protegemos la creación de usuarios
+    //Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
+   // Route::post('/register', [RegisteredUserController::class, 'store']);
 });
 
 // Rutas para el CRUD (solo admin)
@@ -55,8 +63,14 @@ Route::patch('cotizaciones/{cotizacion}/authorize', [CotizacionController::class
      ->name('cotizaciones.authorize')
      ->middleware(['auth', 'admin']);
 
+Route::patch('cotizaciones/{cotizacion}/reject', [CotizacionController::class, 'rejectQuote'])
+     ->name('cotizaciones.reject')
+     ->middleware(['auth', 'admin']);
+
+
 // Rutas públicas para la vista de cotización y descarga de PDF
 Route::get('/public/quote/{token}', [PublicQuoteController::class, 'view'])->name('quotes.public_view');
 Route::get('/public/quote/{token}/pdf', [PublicQuoteController::class, 'downloadPdf'])->name('quotes.pdf');
 
+// Cargar rutas de autenticación por defecto (login, logout, etc.)
 require __DIR__.'/auth.php';

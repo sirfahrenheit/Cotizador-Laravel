@@ -268,15 +268,16 @@ return [
             'icon' => 'fas fa-users',
         ],
         [
-            'text' => 'Cotizaciones',
-            'url'  => 'cotizaciones',
-            'icon' => 'fas fa-file-alt',
-        ],
-        [
             'text' => 'Productos',
             'url'  => 'products',
             'icon' => 'fas fa-box-open',
         ],
+        [
+            'text' => 'Cotizaciones',
+            'url'  => 'cotizaciones',
+            'icon' => 'fas fa-file-alt',
+        ],
+        
         
     ],
 

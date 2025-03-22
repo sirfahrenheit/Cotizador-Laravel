@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cotizacion;
 use Carbon\Carbon;
-use PDF; // Asegúrate de que el alias esté definido en config/app.php
+use PDF; // Asegúrate de tener configurado el alias 'PDF' en config/app.php
 
 class PublicQuoteController extends Controller
 {
@@ -13,9 +13,13 @@ class PublicQuoteController extends Controller
      */
     public function view($token)
     {
+        // Buscar la cotización junto con las relaciones necesarias
         $quote = Cotizacion::where('cotizacion_token', $token)
             ->with(['client', 'items'])
             ->firstOrFail();
+
+        // Incrementa el contador de vistas sin mostrarlo al cliente
+        $quote->increment('view_count');
 
         // Formatear fechas
         $creationDateFormatted = Carbon::parse($quote->created_at)->format('d/m/Y');
@@ -29,7 +33,7 @@ class PublicQuoteController extends Controller
             $discountPercentage = round(($quote->discount / $quote->subtotal) * 100, 2);
         }
 
-        // Ruta del logo de tu empresa
+        // Ruta del logo de la empresa
         $logoUrl = asset('images/mi-logo.jpg');
 
         return view('public_quotes.view', [
@@ -44,40 +48,41 @@ class PublicQuoteController extends Controller
     /**
      * Genera y descarga un PDF de la cotización.
      */
-public function downloadPdf($token)
-{
-    $quote = Cotizacion::where('cotizacion_token', $token)
-        ->with(['client', 'items'])
-        ->firstOrFail();
+    public function downloadPdf($token)
+    {
+        // Buscar la cotización junto con las relaciones necesarias
+        $quote = Cotizacion::where('cotizacion_token', $token)
+            ->with(['client', 'items'])
+            ->firstOrFail();
 
-    $creationDateFormatted = Carbon::parse($quote->created_at)->format('d/m/Y');
-    $expirationDateFormatted = $quote->expiration_date
-        ? Carbon::parse($quote->expiration_date)->format('d/m/Y')
-        : 'Sin vencimiento';
+        // Formatear fechas
+        $creationDateFormatted = Carbon::parse($quote->created_at)->format('d/m/Y');
+        $expirationDateFormatted = $quote->expiration_date
+            ? Carbon::parse($quote->expiration_date)->format('d/m/Y')
+            : 'Sin vencimiento';
 
-    // Se asume que discount es el monto en moneda
-    $subtotal = $quote->items->sum(function ($item) {
-        return $item->quantity * $item->unit_price;
-    });
-    $descuentoTotal = $quote->discount;
-    $total = $subtotal - $descuentoTotal;
+        // Calcular totales: Se asume que "discount" es el monto de descuento en moneda
+        $subtotal = $quote->items->sum(function ($item) {
+            return $item->quantity * $item->unit_price;
+        });
+        $descuentoTotal = $quote->discount;
+        $total = $subtotal - $descuentoTotal;
 
-    $logoUrl = asset('images/mi-logo.jpg');
+        // Ruta del logo de la empresa
+        $logoUrl = asset('images/mi-logo.jpg');
 
-    $pdf = PDF::loadView('public_quotes.pdf', [
-        'quote'                   => $quote,
-        'creationDateFormatted'   => $creationDateFormatted,
-        'expirationDateFormatted' => $expirationDateFormatted,
-        'logoUrl'                 => $logoUrl,
-        'subtotal'                => $subtotal,
-        'descuentoTotal'          => $descuentoTotal,
-        'total'                   => $total,
-    ]);
+        // Generar PDF usando la vista 'public_quotes.pdf'
+        $pdf = PDF::loadView('public_quotes.pdf', [
+            'quote'                   => $quote,
+            'creationDateFormatted'   => $creationDateFormatted,
+            'expirationDateFormatted' => $expirationDateFormatted,
+            'logoUrl'                 => $logoUrl,
+            'subtotal'                => $subtotal,
+            'descuentoTotal'          => $descuentoTotal,
+            'total'                   => $total,
+        ]);
 
-    $filename = 'Cotizacion_' . $quote->cotizacion_numero . '.pdf';
-    return $pdf->download($filename);
-}
-
-
-    
+        $filename = 'Cotizacion_' . $quote->cotizacion_numero . '.pdf';
+        return $pdf->download($filename);
+    }
 }
