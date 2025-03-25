@@ -25,7 +25,7 @@
         </div>
     </div>
 
-    <!-- Ítems (Productos y Servicios) -->
+    <!-- Ítems (Productos y Servicios) en tarjetas -->
     <div class="card mb-3">
         <div class="card-header">
             <h3 class="card-title">Productos y Servicios</h3>
@@ -34,31 +34,23 @@
             @if($cotizacion->items->isEmpty())
                 <p>No se encontraron ítems para esta cotización.</p>
             @else
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Modelo</th>
-                                <th>Descripción</th>
-                                <th>Cantidad</th>
-                                <th>Precio Unitario</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($cotizacion->items as $index => $item)
-                                <tr>
-                                    <td>{{ $index + 1 }}</td>
-                                    <td>{{ $item->modelo }}</td>
-                                    <td>{{ $item->description }}</td>
-                                    <td>{{ $item->quantity }}</td>
-                                    <td>Q{{ number_format($item->unit_price, 2) }}</td>
-                                    <td>Q{{ number_format($item->total_price, 2) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                <div class="row">
+                    @foreach($cotizacion->items as $index => $item)
+                        <div class="col-12 col-md-6 mb-3">
+                            <div class="card item-card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span class="item-number">{{ $index + 1 }}.</span>
+                                    <span class="item-model" title="{{ $item->modelo }}">{{ $item->modelo }}</span>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Descripción:</strong> {{ $item->description }}</p>
+                                    <p><strong>Cantidad:</strong> {{ $item->quantity }}</p>
+                                    <p><strong>Precio Unitario:</strong> Q{{ number_format($item->unit_price, 2) }}</p>
+                                    <p><strong>Total:</strong> Q{{ number_format($item->total_price, 2) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             @endif
         </div>
@@ -108,6 +100,32 @@
     .card {
         margin-bottom: 20px;
     }
+    /* Estilos para las tarjetas de ítems */
+    .item-card {
+        margin-bottom: 15px;
+    }
+    .item-card .card-header {
+        background-color: #f8f9fa;
+        padding: 0.75rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .item-card .item-number {
+        font-weight: bold;
+        margin-right: 0.5rem;
+    }
+    .item-card .item-model {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: calc(100% - 120px);
+    }
+    .item-card .card-body {
+        padding: 1rem;
+    }
+    /* Ajustes para acciones (botones) en la parte inferior de cada tarjeta, si se desea */
+    /* Se mantienen aquí las acciones generales, en este caso los botones de acción generales están en la parte inferior de la vista */
 </style>
 @stop
 

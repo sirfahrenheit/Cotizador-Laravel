@@ -8,7 +8,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\WorkOrderController;
 use App\Http\Controllers\PublicQuoteController;
 use App\Http\Controllers\SettingsController;
-use App\Http\Controllers\Auth\RegisteredUserController; // <-- Asegúrate de que el namespace sea correcto
+use App\Http\Controllers\Auth\RegisteredUserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -27,13 +27,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// *** RUTAS DE REGISTRO - SOLO ADMIN ***
-Route::middleware(['auth', 'admin'])->group(function () {
-    // Aquí protegemos la creación de usuarios
-    //Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
-   // Route::post('/register', [RegisteredUserController::class, 'store']);
-});
-
 // Rutas para el CRUD (solo admin)
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('clients', ClientController::class);
@@ -50,6 +43,10 @@ Route::middleware(['auth', 'tech'])->prefix('tech')->name('tech.')->group(functi
     Route::get('work_orders/{workOrder}', [WorkOrderController::class, 'showForTech'])->name('work_orders.show');
     Route::get('work_orders/{workOrder}/edit', [WorkOrderController::class, 'editForTech'])->name('work_orders.edit');
     Route::patch('work_orders/{workOrder}', [WorkOrderController::class, 'updateForTech'])->name('work_orders.update');
+
+    // Ruta para el Check In del técnico
+    Route::post('work_orders/checkin', [WorkOrderController::class, 'checkinTech'])
+         ->name('work_orders.checkin');
 });
 
 // Rutas de configuración (solo admin)
@@ -58,7 +55,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('/settings', [SettingsController::class, 'update'])->name('admin.settings.update');
 });
 
-// Ruta para autorizar una cotización (solo admin)
+// Rutas para autorizar o rechazar cotizaciones (solo admin)
 Route::patch('cotizaciones/{cotizacion}/authorize', [CotizacionController::class, 'authorizeQuote'])
      ->name('cotizaciones.authorize')
      ->middleware(['auth', 'admin']);
@@ -67,10 +64,9 @@ Route::patch('cotizaciones/{cotizacion}/reject', [CotizacionController::class, '
      ->name('cotizaciones.reject')
      ->middleware(['auth', 'admin']);
 
-
 // Rutas públicas para la vista de cotización y descarga de PDF
 Route::get('/public/quote/{token}', [PublicQuoteController::class, 'view'])->name('quotes.public_view');
 Route::get('/public/quote/{token}/pdf', [PublicQuoteController::class, 'downloadPdf'])->name('quotes.pdf');
 
-// Cargar rutas de autenticación por defecto (login, logout, etc.)
+// Cargar rutas de autenticación (login, logout, etc.)
 require __DIR__.'/auth.php';

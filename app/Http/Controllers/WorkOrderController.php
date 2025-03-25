@@ -4,15 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\WorkOrder;
 use App\Models\User;
+use App\Models\WorkOrderCheckin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class WorkOrderController extends Controller
 {
     // ============================
     // Métodos para Administradores
     // ============================
-
+    
     /**
      * Muestra el listado de órdenes de trabajo para admin.
      */
@@ -30,7 +33,6 @@ class WorkOrderController extends Controller
      */
     public function create()
     {
-        // Obtener los técnicos disponibles
         $tecnicos = User::where('role', 'tecnico')->get();
         return view('work_orders.create', compact('tecnicos'));
     }
@@ -104,15 +106,60 @@ class WorkOrderController extends Controller
     // ============================
 
     /**
-     * Muestra el listado de órdenes asignadas al técnico.
+     * Muestra el listado de órdenes asignadas al técnico y determina si ya hizo el check-in.
      */
     public function indexForTech()
     {
-        $orders = WorkOrder::where('tecnico_id', Auth::id())
-            ->orderBy('fecha', 'desc')
-            ->get();
+        $currentDate = Carbon::now('America/Guatemala')->toDateString();
 
-        return view('tech.work_orders.index', compact('orders'));
+        $checkin = WorkOrderCheckin::where('tecnico_id', Auth::id())
+                    ->whereDate('checked_in_at', $currentDate)
+                    ->first();
+
+        $isCheckedIn = $checkin ? true : false;
+
+        if ($isCheckedIn) {
+            $orders = WorkOrder::where('tecnico_id', Auth::id())
+                        ->orderBy('fecha', 'desc')
+                        ->get();
+        } else {
+            $orders = collect(); // Colección vacía
+        }
+
+        return view('tech.work_orders.index', [
+            'orders' => $orders,
+            'isCheckedIn' => $isCheckedIn,
+        ]);
+    }
+
+    /**
+     * Registra el check-in del técnico.
+     */
+    public function checkinTech(Request $request)
+    {
+        Log::info("checkinTech llamado", ['user_id' => Auth::id()]);
+
+        // Para depurar, quitamos temporalmente la validación estricta del timestamp
+        $validatedData = $request->validate([
+            'latitude'  => 'required|numeric',
+            'longitude' => 'required|numeric',
+            'timestamp' => 'required',
+        ]);
+
+        Log::info("Datos validados", $validatedData);
+
+        $checkin = new WorkOrderCheckin();
+        $checkin->tecnico_id = Auth::id();
+        $checkin->latitude = $validatedData['latitude'];
+        $checkin->longitude = $validatedData['longitude'];
+        // Guardamos la hora actual en la zona local (America/Guatemala)
+        $checkin->checked_in_at = Carbon::now('America/Guatemala');
+        $checkin->save();
+
+        Log::info("Check-in guardado", ['checkin_id' => $checkin->id]);
+
+        return response('Check-in registrado correctamente.', 200)
+               ->header('Content-Type', 'text/plain');
     }
 
     /**
@@ -123,7 +170,6 @@ class WorkOrderController extends Controller
         if ($workOrder->tecnico_id != Auth::id()) {
             abort(403, 'No tienes permiso para ver esta orden.');
         }
-
         return view('tech.work_orders.show', compact('workOrder'));
     }
 
@@ -135,7 +181,6 @@ class WorkOrderController extends Controller
         if ($workOrder->tecnico_id != Auth::id()) {
             abort(403, 'No tienes permiso para editar esta orden.');
         }
-
         return view('tech.work_orders.edit', compact('workOrder'));
     }
 
@@ -148,7 +193,6 @@ class WorkOrderController extends Controller
             abort(403, 'No tienes permiso para actualizar esta orden.');
         }
 
-        // Si la orden ya está finalizada, no se permiten cambios
         if ($workOrder->estado === 'finalizado') {
             return redirect()->route('tech.work_orders.index')
                 ->with('error', 'Esta orden de trabajo está finalizada y no se pueden realizar cambios.');

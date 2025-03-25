@@ -56,10 +56,11 @@
       <div class="card mb-3">
         <div class="card-header">Agregar Producto</div>
         <div class="card-body">
+          <!-- Fila 1: Producto, Cantidad, Precio, Botón -->
           <div class="row g-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label for="productSelect" class="form-label">Producto (Modelo)</label>
-              <!-- Notar la clase extra "custom-select-no-arrow" -->
+              <!-- Se mantiene la clase custom-select-no-arrow para el estilo -->
               <select id="productSelect" class="form-control custom-select-no-arrow">
                 <option value="" disabled selected>-- Seleccione un producto --</option>
                 @foreach($products as $prod)
@@ -72,20 +73,23 @@
                 @endforeach
               </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label for="productQuantity" class="form-label">Cantidad</label>
               <input type="number" id="productQuantity" class="form-control" value="1" min="1">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label for="productPrice" class="form-label">Precio Unitario</label>
               <input type="number" step="0.01" id="productPrice" class="form-control" value="0.00" min="0">
             </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button type="button" class="btn btn-primary w-100" id="addProductEntry">Añadir Producto</button>
+            </div>
+          </div>
+          <!-- Fila 2: Descripción -->
+          <div class="row g-3 mt-3">
             <div class="col-12">
               <label for="productDescription" class="form-label">Descripción</label>
               <textarea id="productDescription" class="form-control" rows="2"></textarea>
-            </div>
-            <div class="col-12">
-              <button type="button" class="btn btn-secondary" id="addProductEntry">Añadir Producto</button>
             </div>
           </div>
         </div>
@@ -135,122 +139,100 @@
     -moz-appearance: none;
     -webkit-appearance: none;
     appearance: none;
-    background-color: #fff; /* Ajustar si quieres otro color de fondo */
-    /* Agrega un poco de padding para que no se encime el texto con la flecha */
-    padding-right: 2.2rem; 
+    background-color: #fff;
+    padding-right: 2.2rem;
     background-position: right 0.75rem center;
     background-repeat: no-repeat;
     background-size: 1rem;
-    /* Opcional: añadir una flechita personalizada con un SVG */
     background-image: url("data:image/svg+xml,%3Csvg fill='none' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5H7z' fill='%23666'/%3E%3C/svg%3E");
   }
-  /* Para IE y Edge viejos */
   .custom-select-no-arrow::-ms-expand {
     display: none;
   }
 </style>
+<!-- CSS de Select2 (versión 4.0.13) -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 @stop
 
 @section('js')
+<!-- JS de Select2 (versión 4.0.13); se usa el jQuery de AdminLTE -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Referencias a elementos
-    const productSelect = document.getElementById('productSelect');
-    const productQuantity = document.getElementById('productQuantity');
-    const productPrice = document.getElementById('productPrice');
-    const productDescription = document.getElementById('productDescription');
-    const addProductEntry = document.getElementById('addProductEntry');
+$(document).ready(function() {
 
-    const itemsContainer = document.getElementById('itemsContainer'); 
-    const discountInput = document.getElementById('discount_percentage');
-    const subtotalDisplay = document.getElementById('subtotalDisplay');
-    const totalDisplay = document.getElementById('totalDisplay');
-    const productsDataInput = document.getElementById('products_data');
+    // Inicializar Select2 en el select de productos con el campo de búsqueda activado
+    $('#productSelect').select2({
+        placeholder: "-- Seleccione un producto --",
+        width: '100%',
+        minimumResultsForSearch: 0
+    });
 
     // Array para almacenar los productos agregados
     let productsAdded = [];
 
-    // Cuando se cambia el producto, se actualiza la descripción y el precio por defecto
-    productSelect.addEventListener('change', function() {
-        const selectedOption = productSelect.options[productSelect.selectedIndex];
-        if (!selectedOption) return;
-
-        const defaultDescription = selectedOption.getAttribute('data-description') || "";
-        const defaultPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-
-        // Solo actualizar si el precio está en 0
-        if (parseFloat(productPrice.value) === 0){
-          productPrice.value = defaultPrice.toFixed(2);
+    // Actualizar descripción y precio cuando se selecciona un producto
+    $('#productSelect').on('change', function() {
+        let selectedOption = $(this).find(':selected');
+        let defaultDescription = selectedOption.data('description') || "";
+        let defaultPrice = parseFloat(selectedOption.data('price')) || 0;
+        if ( parseFloat($('#productPrice').val()) === 0 ) {
+            $('#productPrice').val(defaultPrice.toFixed(2));
         }
-        productDescription.value = defaultDescription;
+        $('#productDescription').val(defaultDescription);
     });
 
     // Función para actualizar la vista de productos y los totales
     function updateProductsView() {
-        itemsContainer.innerHTML = '';
+        $('#itemsContainer').empty();
         let subtotal = 0;
-
-        productsAdded.forEach((item, index) => {
-            const lineTotal = item.quantity * item.unit_price;
+        $.each(productsAdded, function(index, item) {
+            let lineTotal = item.quantity * item.unit_price;
             subtotal += lineTotal;
-
-            // Crear el contenedor (card) para cada producto
-            const itemDiv = document.createElement('div');
-            // Para mostrar en una sola columna en teléfono, usamos col-12
-            itemDiv.classList.add('col-12', 'mb-3');
-
-            itemDiv.innerHTML = `
-              <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                  <strong>${item.model}</strong>
-                  <button type="button" class="btn btn-danger btn-sm" data-index="${index}">
-                    Eliminar
-                  </button>
-                </div>
-                <div class="card-body">
-                  <p class="mb-1"><em>${item.description}</em></p>
-                  <p class="mb-1">
-                    <span class="fw-bold">Cantidad:</span> ${item.quantity}<br>
-                    <span class="fw-bold">Precio Unitario:</span> ${item.unit_price.toFixed(2)}<br>
-                    <span class="fw-bold">Total:</span> ${lineTotal.toFixed(2)}
-                  </p>
+            let itemHtml = `
+              <div class="col-12 mb-3">
+                <div class="card">
+                  <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>${item.model}</strong>
+                    <button type="button" class="btn btn-danger btn-sm" data-index="${index}">
+                      Eliminar
+                    </button>
+                  </div>
+                  <div class="card-body">
+                    <p class="mb-1"><em>${item.description}</em></p>
+                    <p class="mb-1">
+                      <span class="fw-bold">Cantidad:</span> ${item.quantity}<br>
+                      <span class="fw-bold">Precio Unitario:</span> ${item.unit_price.toFixed(2)}<br>
+                      <span class="fw-bold">Total:</span> ${lineTotal.toFixed(2)}
+                    </p>
+                  </div>
                 </div>
               </div>
             `;
-            itemsContainer.appendChild(itemDiv);
+            $('#itemsContainer').append(itemHtml);
         });
-
-        // Calcular totales
-        let discount = parseFloat(discountInput.value) || 0;
+        let discount = parseFloat($('#discount_percentage').val()) || 0;
         let totalAfterDiscount = subtotal * (1 - discount / 100);
-
-        // Mostrar en pantalla
-        subtotalDisplay.textContent = subtotal.toFixed(2);
-        totalDisplay.textContent = totalAfterDiscount.toFixed(2);
-
-        // Actualizar campo oculto con JSON
-        productsDataInput.value = JSON.stringify(productsAdded);
+        $('#subtotalDisplay').text(subtotal.toFixed(2));
+        $('#totalDisplay').text(totalAfterDiscount.toFixed(2));
+        $('#products_data').val(JSON.stringify(productsAdded));
     }
 
-    // Añadir producto al arreglo
-    addProductEntry.addEventListener('click', function() {
-        const prodId = productSelect.value;
+    // Agregar producto al arreglo y actualizar vista
+    $('#addProductEntry').on('click', function() {
+        let prodId = $('#productSelect').val();
         if (!prodId) {
             alert('Seleccione un producto.');
             return;
         }
-        const selectedOption = productSelect.options[productSelect.selectedIndex];
-        const model = selectedOption.getAttribute('data-model') || "";
-        const description = productDescription.value.trim();
-        const quantity = parseFloat(productQuantity.value) || 0;
-        const unit_price = parseFloat(productPrice.value) || 0;
-
+        let selectedOption = $('#productSelect').find(':selected');
+        let model = selectedOption.data('model') || "";
+        let description = $('#productDescription').val().trim();
+        let quantity = parseFloat($('#productQuantity').val()) || 0;
+        let unit_price = parseFloat($('#productPrice').val()) || 0;
         if (quantity <= 0 || unit_price < 0) {
             alert('Ingrese valores válidos en cantidad y precio.');
             return;
         }
-
-        // Agregar al array
         productsAdded.push({
             product_id: prodId,
             model: model,
@@ -258,28 +240,25 @@ document.addEventListener('DOMContentLoaded', function() {
             quantity: quantity,
             unit_price: unit_price
         });
-
-        // Limpiar campos
-        productSelect.value = "";
-        productQuantity.value = "1";
-        productPrice.value = "0.00";
-        productDescription.value = "";
-
-        // Actualizar la vista
+        // Reiniciar campos y restablecer Select2
+        $('#productSelect').val(null).trigger('change');
+        $('#productQuantity').val("1");
+        $('#productPrice').val("0.00");
+        $('#productDescription').val("");
         updateProductsView();
     });
 
-    // Eliminar producto (delegación de evento en el contenedor)
-    itemsContainer.addEventListener('click', function(e) {
-        if(e.target && e.target.matches('button.btn-danger')) {
-            const index = e.target.getAttribute('data-index');
-            productsAdded.splice(index, 1);
-            updateProductsView();
-        }
+    // Eliminar producto mediante delegación
+    $('#itemsContainer').on('click', 'button.btn-danger', function() {
+        let index = $(this).data('index');
+        productsAdded.splice(index, 1);
+        updateProductsView();
     });
 
-    // Recalcular totales al cambiar el descuento
-    discountInput.addEventListener('input', updateProductsView);
+    // Actualizar totales al cambiar el descuento
+    $('#discount_percentage').on('input', function() {
+        updateProductsView();
+    });
 });
 </script>
 @stop

@@ -45,7 +45,7 @@
       <h3>Productos (Ítems)</h3>
 
       <!-- Formulario único para agregar/actualizar producto -->
-      <div class="card mb-3">
+      <div class="card mb-3" id="productForm">
         <div class="card-header">Producto</div>
         <div class="card-body">
           <div class="row g-3">
@@ -122,7 +122,7 @@
 @section('css')
   <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
   <style>
-    /* Estilo para el select personalizado */
+    /* Contenedor para el select personalizado */
     .custom-select-wrapper {
       position: relative;
       display: inline-block;
@@ -160,23 +160,50 @@
       padding: 0.5rem 1rem;
       background-color: #f8f9fa;
       border-bottom: 1px solid #dee2e6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-item .item-model {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: calc(100% - 120px);
+      margin: 0;
+    }
+    .card-item .card-actions {
+      flex-shrink: 0;
+      display: flex;
+      gap: 0.5rem;
     }
     .card-item .card-body {
       padding: 1rem;
     }
-    .card-item .card-actions {
-      text-align: right;
-      margin-top: 0.5rem;
-    }
-    .card-item .card-actions button {
-      margin-left: 0.5rem;
+    /* Ajustar Select2 para integrarlo con el estilo del select */
+    .select2-container--default .select2-selection--single {
+      height: calc(1.5em + 0.75rem + 2px);
+      padding: 0.375rem 0.75rem;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      background-color: #fff;
     }
   </style>
+  <!-- CSS de Select2 -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 @stop
 
 @section('js')
+<!-- Se carga Select2 (se usa el jQuery de AdminLTE) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar Select2 en el select de productos para búsqueda
+    $('#productSelect').select2({
+        placeholder: "-- Seleccione un producto --",
+        width: '100%',
+        minimumResultsForSearch: 0
+    });
+
     // Arreglo que contendrá los productos agregados
     let productsAdded = [];
     // Variable para saber si se está editando un producto (índice en el arreglo)
@@ -200,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Lista de productos disponibles (desde el controlador)
     const productsList = @json($products);
-    // Ítems precargados de la cotización (el controlador envía las claves: product_id, model, description, quantity, unit_price)
+    // Ítems precargados de la cotización
     let existingItems = {!! $itemsJson ?? '[]' !!};
 
     // Si existen ítems precargados, se asignan al arreglo
@@ -211,6 +238,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para reiniciar el formulario de producto
     function resetProductForm() {
         productSelect.value = "";
+        $(productSelect).trigger('change'); // Para que Select2 actualice
         productQuantity.value = "1";
         productPrice.value = "0.00";
         productDescription.value = "";
@@ -235,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cardItem.innerHTML = `
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <strong>${item.model}</strong>
+                        <p class="item-model">${item.model}</p>
                         <div class="card-actions">
                             <button type="button" class="btn btn-sm btn-primary edit-btn" data-index="${index}">Editar</button>
                             <button type="button" class="btn btn-sm btn-danger delete-btn" data-index="${index}">Eliminar</button>
@@ -318,16 +346,15 @@ document.addEventListener('DOMContentLoaded', function() {
         resetProductForm();
     }
 
-    // Al cambiar el select, se carga la descripción y precio por defecto
-    productSelect.addEventListener('change', function() {
-        const selectedOption = productSelect.options[productSelect.selectedIndex];
-        if (!selectedOption) return;
-        const defaultDescription = selectedOption.getAttribute('data-description') || "";
-        const defaultPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-        if (parseFloat(productPrice.value) === 0) {
-            productPrice.value = defaultPrice.toFixed(2);
+    // Al cambiar el select, se carga la descripción y el precio por defecto
+    $('#productSelect').on('change', function() {
+        let selectedOption = $(this).find(':selected');
+        let defaultDescription = selectedOption.data('description') || "";
+        let defaultPrice = parseFloat(selectedOption.data('price')) || 0;
+        if ( parseFloat($('#productPrice').val()) === 0 ) {
+            $('#productPrice').val(defaultPrice.toFixed(2));
         }
-        productDescription.value = defaultDescription;
+        $('#productDescription').val(defaultDescription);
     });
 
     // Eventos de los botones del formulario de producto
@@ -342,7 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.classList.contains('edit-btn')) {
             const item = productsAdded[index];
             productSelect.value = item.product_id;
-            productSelect.dispatchEvent(new Event('change'));
+            $(productSelect).trigger('change');
             productQuantity.value = item.quantity;
             productPrice.value = parseFloat(item.unit_price).toFixed(2);
             productDescription.value = item.description;
@@ -350,6 +377,8 @@ document.addEventListener('DOMContentLoaded', function() {
             addProductBtn.style.display = "none";
             updateProductBtn.style.display = "inline-block";
             cancelEditBtn.style.display = "inline-block";
+            // Desplazar el formulario hacia arriba (PC y móvil)
+            document.getElementById('productForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
         } else if (target.classList.contains('delete-btn')) {
             productsAdded.splice(index, 1);
             updateProductsView();
@@ -368,7 +397,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @stop
-
 
 
 

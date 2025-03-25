@@ -7,8 +7,10 @@ use App\Models\Client;
 use App\Models\Cotizacion;
 use App\Models\QuoteItem;
 use App\Models\WorkOrder;
+use App\Models\WorkOrderCheckin; // Asegúrate de tener este modelo
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -20,27 +22,58 @@ class DashboardController extends Controller
         $user = Auth::user();
         $role = strtolower(trim($user->role));
 
-        // === Si es TÉCNICO ===
+        // Pasar el rol a la vista para que se pueda condicionar
         if ($role === 'técnico' || $role === 'tecnico') {
-            // Para técnicos: cargar solo las órdenes asignadas a su ID
-            $workOrders = WorkOrder::where('tecnico_id', $user->id)
-                ->orderBy('fecha', 'desc')
-                ->get();
+            // ================================
+            // Lógica para técnicos
+            // ================================
+            // Obtener la fecha actual en la zona horaria de Guatemala
+            $currentDate = Carbon::now('America/Guatemala')->toDateString();
 
-            return view('dashboard', compact('workOrders'));
+            // Verificar si el técnico ya hizo check in hoy
+            $checkin = WorkOrderCheckin::where('tecnico_id', $user->id)
+                ->whereDate('checked_in_at', $currentDate)
+                ->first();
 
-        // === Si es ADMIN ===
+            $isCheckedIn = $checkin ? true : false;
+
+            // Si ya hizo check in, obtener sus órdenes asignadas; de lo contrario, colección vacía
+            if ($isCheckedIn) {
+                $workOrders = WorkOrder::where('tecnico_id', $user->id)
+                    ->orderBy('fecha', 'desc')
+                    ->get();
+            } else {
+                $workOrders = collect();
+            }
+
+            return view('dashboard', [
+                'role'             => $role,
+                'isCheckedIn'      => $isCheckedIn,
+                'workOrders'       => $workOrders,
+                // Para técnicos, las estadísticas admin se pasan como null o valores vacíos
+                'autorizadasCount' => null,
+                'pendientesCount'  => null,
+                'rechazadasCount'  => null,
+                'vistasTotales'    => null,
+                'clientesAceptadas'=> [],
+                'datosAceptadas'   => [],
+                'clientesRechazadas'=> [],
+                'datosRechazadas'  => [],
+                'totalQuoted'      => null,
+                'totalSold'        => null,
+                'topProductsData'  => [],
+            ]);
         } elseif ($role === 'admin') {
-            // 1) Cajas: Contar estados
+            // ================================
+            // Lógica para admin
+            // ================================
+            // Estadísticas generales
             $autorizadasCount = Cotizacion::where('status', 'autorizada')->count();
             $pendientesCount  = Cotizacion::where('status', 'pendiente')->count();
             $rechazadasCount  = Cotizacion::where('status', 'rechazada')->count();
+            $vistasTotales    = Cotizacion::sum('view_count');
 
-            // Suponiendo que el campo de vistas se llama 'view_count'
-            $vistasTotales    = Cotizacion::sum('view_count'); 
-
-            // 2) Gráfica "Aceptadas por Cliente"
-            //    (status 'autorizada' => "aceptada")
+            // Gráfica: Aceptadas por Cliente
             $aceptadasPorCliente = DB::table('cotizaciones')
                 ->select('cliente_id', DB::raw('count(*) as total'))
                 ->where('status', 'autorizada')
@@ -49,7 +82,6 @@ class DashboardController extends Controller
 
             $clientesAceptadas = [];
             $datosAceptadas    = [];
-
             foreach ($aceptadasPorCliente as $fila) {
                 $cliente = Client::find($fila->cliente_id);
                 $nombreCliente = $cliente ? $cliente->nombre : 'Cliente '.$fila->cliente_id;
@@ -57,7 +89,7 @@ class DashboardController extends Controller
                 $datosAceptadas[]    = $fila->total;
             }
 
-            // 3) Gráfica "Rechazadas por Cliente"
+            // Gráfica: Rechazadas por Cliente
             $rechazadasPorCliente = DB::table('cotizaciones')
                 ->select('cliente_id', DB::raw('count(*) as total'))
                 ->where('status', 'rechazada')
@@ -66,7 +98,6 @@ class DashboardController extends Controller
 
             $clientesRechazadas = [];
             $datosRechazadas    = [];
-
             foreach ($rechazadasPorCliente as $fila) {
                 $cliente = Client::find($fila->cliente_id);
                 $nombreCliente = $cliente ? $cliente->nombre : 'Cliente '.$fila->cliente_id;
@@ -74,12 +105,11 @@ class DashboardController extends Controller
                 $datosRechazadas[]    = $fila->total;
             }
 
-            // 4) (Opcional) Otras consultas, e.g. totales, topProducts, etc.
-            // Ejemplo de totales en dinero
-            $totalQuoted = Cotizacion::sum('total'); // Monto total cotizado
-            $totalSold   = Cotizacion::where('status', 'autorizada')->sum('total'); // Monto total autorizado
+            // Totales en dinero
+            $totalQuoted = Cotizacion::sum('total');  
+            $totalSold   = Cotizacion::where('status', 'autorizada')->sum('total');
 
-            // (Opcional) topProducts
+            // Top products (opcional)
             $topProductsData = QuoteItem::select('modelo', DB::raw('sum(quantity) as total_quantity'))
                 ->groupBy('modelo')
                 ->orderByDesc('total_quantity')
@@ -87,29 +117,42 @@ class DashboardController extends Controller
                 ->pluck('total_quantity', 'modelo')
                 ->toArray();
 
-            // Retornamos la vista con todos los datos
+            // Para admin, no se utiliza el check in ni las órdenes asignadas
             return view('dashboard', [
-                'autorizadasCount'     => $autorizadasCount,
-                'pendientesCount'      => $pendientesCount,
-                'rechazadasCount'      => $rechazadasCount,
-                'vistasTotales'        => $vistasTotales,
-
-                'clientesAceptadas'    => $clientesAceptadas,
-                'datosAceptadas'       => $datosAceptadas,
-                'clientesRechazadas'   => $clientesRechazadas,
-                'datosRechazadas'      => $datosRechazadas,
-
-                'totalQuoted'          => $totalQuoted,
-                'totalSold'            => $totalSold,
-                'topProductsData'      => $topProductsData,
+                'role'             => $role,
+                'isCheckedIn'      => false,
+                'workOrders'       => collect(),
+                'autorizadasCount' => $autorizadasCount,
+                'pendientesCount'  => $pendientesCount,
+                'rechazadasCount'  => $rechazadasCount,
+                'vistasTotales'    => $vistasTotales,
+                'clientesAceptadas'=> $clientesAceptadas,
+                'datosAceptadas'   => $datosAceptadas,
+                'clientesRechazadas'=> $clientesRechazadas,
+                'datosRechazadas'  => $datosRechazadas,
+                'totalQuoted'      => $totalQuoted,
+                'totalSold'        => $totalSold,
+                'topProductsData'  => $topProductsData,
             ]);
-
-        // === Si no es admin ni técnico ===
         } else {
-            // Vista vacía o genérica
-            $cotizaciones = collect();
-            $workOrders   = collect();
-            return view('dashboard', compact('cotizaciones', 'workOrders'));
+            // Para otros roles, se retornan valores por defecto
+            return view('dashboard', [
+                'role'             => $role,
+                'isCheckedIn'      => false,
+                'workOrders'       => collect(),
+                'autorizadasCount' => null,
+                'pendientesCount'  => null,
+                'rechazadasCount'  => null,
+                'vistasTotales'    => null,
+                'clientesAceptadas'=> [],
+                'datosAceptadas'   => [],
+                'clientesRechazadas'=> [],
+                'datosRechazadas'  => [],
+                'totalQuoted'      => null,
+                'totalSold'        => null,
+                'topProductsData'  => [],
+            ]);
         }
     }
 }
+
