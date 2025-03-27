@@ -137,6 +137,9 @@
       <form method="POST" action="{{ route('login') }}">
         @csrf
         
+        <!-- Campo oculto para FCM token (este valor se asigna mediante Firebase Messaging) -->
+        <input type="hidden" name="fcm_token" id="fcm_token">
+        
         <!-- Correo Electrónico -->
         <div class="mb-3">
           <label for="email" class="form-label">Correo Electrónico</label>
@@ -200,12 +203,12 @@
   <!-- Bootstrap Bundle JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
   
-  <!-- Script para mostrar/ocultar contraseña con íconos SVG inline -->
+  <!-- Script para mostrar/ocultar contraseña -->
   <script>
     const btnTogglePassword = document.getElementById('btnTogglePassword');
     const passwordInput = document.getElementById('password');
     
-    // Definir los íconos SVG inline
+    // Iconos SVG
     const iconEye = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
       <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8z"/>
       <path d="M8 10.5A2.5 2.5 0 1 0 8 5.5a2.5 2.5 0 0 0 0 5z"/>
@@ -224,6 +227,43 @@
       }
     });
   </script>
+  
+  <!-- Firebase App (la SDK central de Firebase) -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <!-- Firebase Messaging -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-messaging-compat.js"></script>
+  <script>
+    // Configuración de Firebase – REEMPLAZA estos valores con los tuyos
+    const firebaseConfig = {
+      apiKey: "AIzaSyCIcFLqGCDP_tP5mgYiZGNE_n_sETbbdaU",
+      authDomain: "mensajes-jadi.firebaseapp.com",
+      projectId: "mensajes-jadi",
+      storageBucket: "mensajes-jadi.firebasestorage.app",
+      messagingSenderId: "813841298517",
+      appId: "1:813841298517:web:5c3a8a06b7a08512cdd0dc",
+      measurementId: "G-5408RZKB88"
+    };
+
+    // Inicializa Firebase
+    firebase.initializeApp(firebaseConfig);
+    
+    // Obtén la instancia de Firebase Messaging
+    const messaging = firebase.messaging();
+    
+    // Solicita permiso y obtiene el token FCM (usa la clave VAPID pública)
+    messaging.getToken({ vapidKey: 'BAJj9lRAIix4e0bUxD1MIR9XjpWLjObrgiQkYioWHLdCaw6Lqp4VxMPUozezfF7QK7YdJWq3jPXQNym88c362fM' })
+      .then((currentToken) => {
+        if (currentToken) {
+          console.log('FCM Token obtenido:', currentToken);
+          // Asigna el token al campo oculto del formulario
+          document.getElementById('fcm_token').value = currentToken;
+        } else {
+          console.log('No se pudo obtener el token. Se requiere permiso para notificaciones.');
+        }
+      })
+      .catch((err) => {
+        console.log('Error al obtener token FCM:', err);
+      });
+  </script>
 </body>
 </html>
-

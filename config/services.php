@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // Configuración para Firebase Cloud Messaging
+    'fcm' => [
+        'key' => env('FCM_SERVER_KEY'),
+    ],
+
 ];

@@ -10,12 +10,21 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
+// Importamos eventos para broadcasting
+use App\Events\TechnicianCheckedIn;
+use App\Events\WorkOrderUpdated;
+use App\Events\WorkOrderCreated;
+
+// Importamos notificaciones para FCM
+use App\Notifications\TechnicianCheckedInNotification;
+use App\Notifications\WorkOrderCreatedNotification;
+
 class WorkOrderController extends Controller
 {
     // ============================
     // Métodos para Administradores
     // ============================
-    
+
     /**
      * Muestra el listado de órdenes de trabajo para admin.
      */
@@ -48,7 +57,36 @@ class WorkOrderController extends Controller
             'tecnico_id' => 'required|exists:users,id',
         ]);
 
-        WorkOrder::create($validated);
+        $order = WorkOrder::create($validated);
+
+        // Despachamos el evento de creación (broadcasting)
+        event(new WorkOrderCreated($order->id));
+
+        // Notificar al técnico asignado
+        $technician = User::find($validated['tecnico_id']);
+        if ($technician) {
+            $techTokens = $technician->routeNotificationForFcm();
+            if (empty($techTokens)) {
+                Log::warning('Técnico sin token FCM', ['tecnico_id' => $validated['tecnico_id']]);
+            } else {
+                Log::info('Notificando técnico', ['tecnico_id' => $validated['tecnico_id'], 'tokens' => $techTokens]);
+                $technician->notify(new WorkOrderCreatedNotification($order));
+            }
+        } else {
+            Log::warning('No se encontró el técnico asignado', ['tecnico_id' => $validated['tecnico_id']]);
+        }
+
+        // Notificar a todos los administradores
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            $adminTokens = $admin->routeNotificationForFcm();
+            if (empty($adminTokens)) {
+                Log::warning('Administrador sin token FCM', ['admin_id' => $admin->id]);
+            } else {
+                Log::info('Notificando administrador', ['admin_id' => $admin->id, 'tokens' => $adminTokens]);
+                $admin->notify(new WorkOrderCreatedNotification($order));
+            }
+        }
 
         return redirect()->route('work_orders.index')
             ->with('success', 'Orden de trabajo creada correctamente.');
@@ -85,6 +123,9 @@ class WorkOrderController extends Controller
         ]);
 
         $workOrder->update($validated);
+
+        // Despachamos el evento de actualización
+        event(new WorkOrderUpdated($workOrder->id));
 
         return redirect()->route('work_orders.index')
             ->with('success', 'Orden de trabajo actualizada correctamente.');
@@ -139,7 +180,6 @@ class WorkOrderController extends Controller
     {
         Log::info("checkinTech llamado", ['user_id' => Auth::id()]);
 
-        // Para depurar, quitamos temporalmente la validación estricta del timestamp
         $validatedData = $request->validate([
             'latitude'  => 'required|numeric',
             'longitude' => 'required|numeric',
@@ -152,11 +192,35 @@ class WorkOrderController extends Controller
         $checkin->tecnico_id = Auth::id();
         $checkin->latitude = $validatedData['latitude'];
         $checkin->longitude = $validatedData['longitude'];
-        // Guardamos la hora actual en la zona local (America/Guatemala)
         $checkin->checked_in_at = Carbon::now('America/Guatemala');
         $checkin->save();
 
         Log::info("Check-in guardado", ['checkin_id' => $checkin->id]);
+
+        // Despachamos el evento de check-in para broadcasting
+        event(new TechnicianCheckedIn(
+            Auth::id(),
+            $validatedData['timestamp'],
+            $validatedData['latitude'],
+            $validatedData['longitude']
+        ));
+
+        // Notificar a administradores sobre el check-in del técnico
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            $adminTokens = $admin->routeNotificationForFcm();
+            if (empty($adminTokens)) {
+                Log::warning('Administrador sin token FCM', ['admin_id' => $admin->id]);
+            } else {
+                Log::info('Notificando administrador por check-in', ['admin_id' => $admin->id, 'tokens' => $adminTokens]);
+                $admin->notify(new TechnicianCheckedInNotification(
+                    Auth::id(),
+                    $validatedData['timestamp'],
+                    $validatedData['latitude'],
+                    $validatedData['longitude']
+                ));
+            }
+        }
 
         return response('Check-in registrado correctamente.', 200)
                ->header('Content-Type', 'text/plain');
@@ -206,7 +270,11 @@ class WorkOrderController extends Controller
 
         $workOrder->update($validated);
 
+        // Despachamos el evento de actualización de work order
+        event(new WorkOrderUpdated($workOrder->id));
+
         return redirect()->route('tech.work_orders.index')
             ->with('success', 'Orden de trabajo actualizada correctamente.');
     }
 }
+

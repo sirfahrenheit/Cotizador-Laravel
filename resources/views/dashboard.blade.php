@@ -123,7 +123,6 @@
     @elseif($role === 'técnico' || $role === 'tecnico')
         <!-- Sección para Técnicos -->
         @php
-            // Determinar si el técnico está tarde comparando la hora actual con el límite (America/Guatemala)
             $currentTime = \Carbon\Carbon::now('America/Guatemala')->format('H:i');
             $checkInDeadline = "09:10";
             $isLate = $currentTime >= $checkInDeadline;
@@ -163,7 +162,6 @@
                                     <p><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</p>
                                 </div>
                                 <div class="card-footer text-right">
-                                    <!-- Usamos route-model binding pasando el objeto $order -->
                                     <a href="{{ route('tech.work_orders.show', $order) }}" class="btn btn-info btn-sm">Ver</a>
                                     <a href="{{ route('tech.work_orders.edit', $order) }}" class="btn btn-warning btn-sm">Actualizar</a>
                                 </div>
@@ -195,6 +193,9 @@
     <!-- Scripts para Admin: Chart.js, Pusher y Laravel Echo -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
+    <!-- Cargamos Laravel Echo (versión IIFE) desde CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/laravel-echo/1.11.3/echo.iife.min.js"></script>
+    <!-- Cargamos nuestro archivo echo.js sin sintaxis de import -->
     <script src="{{ asset('js/echo.js') }}"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -232,12 +233,29 @@
             options: { responsive: true, scales: { y: { beginAtZero: true } } }
         });
 
-        // Laravel Echo para notificaciones en tiempo real
+        // Suscripción a canal para actualizaciones de work orders
         window.Echo.channel('work-orders')
             .listen('WorkOrderUpdated', (e) => {
                 const notificationEl = document.getElementById('realtimeNotification');
                 notificationEl.classList.remove('d-none');
                 notificationEl.textContent = 'Notificación: Orden de trabajo #' + e.order_id + ' actualizada.';
+                setTimeout(() => { notificationEl.classList.add('d-none'); }, 5000);
+            });
+
+        window.Echo.channel('work-orders')
+            .listen('WorkOrderCreated', (e) => {
+                const notificationEl = document.getElementById('realtimeNotification');
+                notificationEl.classList.remove('d-none');
+                notificationEl.textContent = 'Notificación: Orden de trabajo #' + e.order_id + ' creada.';
+                setTimeout(() => { notificationEl.classList.add('d-none'); }, 5000);
+            });
+
+        // Suscripción al canal de check-in para notificaciones de técnicos
+        window.Echo.channel('tech-checkin')
+            .listen('TechnicianCheckedIn', (e) => {
+                const notificationEl = document.getElementById('realtimeNotification');
+                notificationEl.classList.remove('d-none');
+                notificationEl.textContent = 'Notificación: Técnico ID ' + e.techId + ' hizo check-in a las ' + e.timestamp;
                 setTimeout(() => { notificationEl.classList.add('d-none'); }, 5000);
             });
     });
