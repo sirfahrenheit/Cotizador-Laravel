@@ -7,7 +7,8 @@ use App\Models\Client;
 use App\Models\Cotizacion;
 use App\Models\QuoteItem;
 use App\Models\WorkOrder;
-use App\Models\WorkOrderCheckin; // Asegúrate de tener este modelo
+use App\Models\WorkOrderCheckin;
+use App\Models\Actividad;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -22,35 +23,22 @@ class DashboardController extends Controller
         $user = Auth::user();
         $role = strtolower(trim($user->role));
 
-        // Pasar el rol a la vista para que se pueda condicionar
         if ($role === 'técnico' || $role === 'tecnico') {
-            // ================================
             // Lógica para técnicos
-            // ================================
-            // Obtener la fecha actual en la zona horaria de Guatemala
             $currentDate = Carbon::now('America/Guatemala')->toDateString();
-
-            // Verificar si el técnico ya hizo check in hoy
             $checkin = WorkOrderCheckin::where('tecnico_id', $user->id)
                 ->whereDate('checked_in_at', $currentDate)
                 ->first();
 
             $isCheckedIn = $checkin ? true : false;
-
-            // Si ya hizo check in, obtener sus órdenes asignadas; de lo contrario, colección vacía
-            if ($isCheckedIn) {
-                $workOrders = WorkOrder::where('tecnico_id', $user->id)
-                    ->orderBy('fecha', 'desc')
-                    ->get();
-            } else {
-                $workOrders = collect();
-            }
+            $workOrders = $isCheckedIn 
+                ? WorkOrder::where('tecnico_id', $user->id)->orderBy('fecha', 'desc')->get() 
+                : collect();
 
             return view('dashboard', [
                 'role'             => $role,
                 'isCheckedIn'      => $isCheckedIn,
                 'workOrders'       => $workOrders,
-                // Para técnicos, las estadísticas admin se pasan como null o valores vacíos
                 'autorizadasCount' => null,
                 'pendientesCount'  => null,
                 'rechazadasCount'  => null,
@@ -64,9 +52,8 @@ class DashboardController extends Controller
                 'topProductsData'  => [],
             ]);
         } elseif ($role === 'admin') {
-            // ================================
-            // Lógica para admin
-            // ================================
+            // Lógica para administradores
+
             // Estadísticas generales
             $autorizadasCount = Cotizacion::where('status', 'autorizada')->count();
             $pendientesCount  = Cotizacion::where('status', 'pendiente')->count();
@@ -84,7 +71,7 @@ class DashboardController extends Controller
             $datosAceptadas    = [];
             foreach ($aceptadasPorCliente as $fila) {
                 $cliente = Client::find($fila->cliente_id);
-                $nombreCliente = $cliente ? $cliente->nombre : 'Cliente '.$fila->cliente_id;
+                $nombreCliente = $cliente ? $cliente->nombre : 'Cliente ' . $fila->cliente_id;
                 $clientesAceptadas[] = $nombreCliente;
                 $datosAceptadas[]    = $fila->total;
             }
@@ -100,13 +87,13 @@ class DashboardController extends Controller
             $datosRechazadas    = [];
             foreach ($rechazadasPorCliente as $fila) {
                 $cliente = Client::find($fila->cliente_id);
-                $nombreCliente = $cliente ? $cliente->nombre : 'Cliente '.$fila->cliente_id;
+                $nombreCliente = $cliente ? $cliente->nombre : 'Cliente ' . $fila->cliente_id;
                 $clientesRechazadas[] = $nombreCliente;
                 $datosRechazadas[]    = $fila->total;
             }
 
             // Totales en dinero
-            $totalQuoted = Cotizacion::sum('total');  
+            $totalQuoted = Cotizacion::sum('total');
             $totalSold   = Cotizacion::where('status', 'autorizada')->sum('total');
 
             // Top products (opcional)
@@ -117,7 +104,11 @@ class DashboardController extends Controller
                 ->pluck('total_quantity', 'modelo')
                 ->toArray();
 
-            // Para admin, no se utiliza el check in ni las órdenes asignadas
+            // **NUEVO: Recordatorio de actividades del día**
+            $today = Carbon::today('America/Guatemala');
+            $tomorrow = Carbon::tomorrow('America/Guatemala');
+            $actividadesHoy = Actividad::whereBetween('fecha', [$today, $tomorrow])->get();
+
             return view('dashboard', [
                 'role'             => $role,
                 'isCheckedIn'      => false,
@@ -133,9 +124,9 @@ class DashboardController extends Controller
                 'totalQuoted'      => $totalQuoted,
                 'totalSold'        => $totalSold,
                 'topProductsData'  => $topProductsData,
+                'actividadesHoy'   => $actividadesHoy,
             ]);
         } else {
-            // Para otros roles, se retornan valores por defecto
             return view('dashboard', [
                 'role'             => $role,
                 'isCheckedIn'      => false,
@@ -155,4 +146,3 @@ class DashboardController extends Controller
         }
     }
 }
-

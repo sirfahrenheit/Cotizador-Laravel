@@ -9,6 +9,7 @@ use App\Http\Controllers\WorkOrderController;
 use App\Http\Controllers\PublicQuoteController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\ActividadController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -47,6 +48,11 @@ Route::middleware(['auth', 'tech'])->prefix('tech')->name('tech.')->group(functi
     // Ruta para el Check In del técnico
     Route::post('work_orders/checkin', [WorkOrderController::class, 'checkinTech'])
          ->name('work_orders.checkin');
+});
+
+// Rutas para el CRM (solo admin)
+Route::group(['middleware' => ['auth', 'admin']], function() {
+    Route::resource('crm/actividades', ActividadController::class)->names('actividades');
 });
 
 // Rutas de configuración (solo admin)

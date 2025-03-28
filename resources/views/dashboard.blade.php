@@ -9,6 +9,24 @@
 @section('content')
 <div class="container-fluid">
     @if($role === 'admin')
+        <!-- Recordatorio de actividades del día -->
+        @if(isset($actividadesHoy) && $actividadesHoy->count() > 0)
+            <div class="alert alert-info">
+                <h4>Recordatorio: Actividades de hoy</h4>
+                <p>Tienes {{ $actividadesHoy->count() }} actividad(es) programada(s) para hoy:</p>
+                <ul>
+                    @foreach($actividadesHoy as $actividad)
+                        <li>
+                            <strong>{{ $actividad->tipo }}</strong> a las {{ \Carbon\Carbon::parse($actividad->fecha)->format('H:i') }}
+                            @if($actividad->descripcion)
+                                - {{ $actividad->descripcion }}
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <!-- Sección para Administradores -->
         <h2>Resumen General</h2>
         <div class="row">
@@ -83,6 +101,15 @@
                         <i class="fas fa-coins"></i>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Enlace al CRM (Actividades) -->
+        <div class="row my-3">
+            <div class="col-12 text-center">
+                <a href="{{ route('actividades.index') }}" class="btn btn-primary btn-lg">
+                    Acceder al CRM - Actividades
+                </a>
             </div>
         </div>
 
@@ -193,9 +220,7 @@
     <!-- Scripts para Admin: Chart.js, Pusher y Laravel Echo -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
-    <!-- Cargamos Laravel Echo (versión IIFE) desde CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/laravel-echo/1.11.3/echo.iife.min.js"></script>
-    <!-- Cargamos nuestro archivo echo.js sin sintaxis de import -->
     <script src="{{ asset('js/echo.js') }}"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function () {

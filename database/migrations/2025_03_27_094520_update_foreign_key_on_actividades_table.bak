@@ -1,0 +1,54 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+class UpdateForeignKeyOnActividadesTable extends Migration
+{
+    /**
+     * Ejecuta las migraciones.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::table('actividades', function (Blueprint $table) {
+            // Intenta eliminar la clave foránea antigua de forma segura.
+            try {
+                $table->dropForeign('actividades_cliente_id_foreign');
+            } catch (\Exception $e) {
+                // Si no existe, simplemente se omite el error.
+            }
+            
+            // Crea la clave foránea correcta, referenciando la columna 'cliente_id' de la tabla 'clientes'.
+            $table->foreign('cliente_id')
+                ->references('cliente_id')
+                ->on('clientes')
+                ->onDelete('cascade');
+        });
+    }
+
+    /**
+     * Revierte las migraciones.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::table('actividades', function (Blueprint $table) {
+            // Intenta eliminar la clave foránea actual de forma segura.
+            try {
+                $table->dropForeign('actividades_cliente_id_foreign');
+            } catch (\Exception $e) {
+                // Si no existe, se omite el error.
+            }
+            
+            // (Opcional) Restaura la clave foránea original, que apuntaba a 'id' en 'clientes'
+            $table->foreign('cliente_id')
+                ->references('id')
+                ->on('clientes')
+                ->onDelete('cascade');
+        });
+    }
+}
