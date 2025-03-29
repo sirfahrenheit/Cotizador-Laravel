@@ -27,25 +27,46 @@ class WorkOrderCreatedNotification extends Notification implements ShouldQueue
 
     public function toFcm($notifiable)
     {
+        $title = 'Nueva Orden de Trabajo';
+        $body  = 'Se ha creado la orden #' . $this->order->orden_id;
+        $iconUrl = 'https://distribuidorajadi.site/images/mi-logo.png';
+        $imageUrl = 'https://foo.bar/pizza-monster.png'; // Reemplaza con la URL de imagen deseada
+
         return FcmMessage::create()
             ->notification(
-                // Parámetros en orden:
-                // 1) title, 2) body, 3) image, 4) array con atributos extra
                 FcmNotification::create(
-                    'Nueva Orden de Trabajo',
-                    'Se ha creado la orden #' . $this->order->orden_id,
-                    null, // Aquí podrías poner la URL de una imagen si quieres usar "image"
+                    $title,
+                    $body,
+                    null, // Puedes agregar la URL de una imagen aquí si lo deseas
                     [
-                        'icon' => 'https://distribuidorajadi.site/images/mi-logo.png'
-                        // Puedes agregar otras propiedades extra:
-                        // 'click_action' => 'https://...'
+                        'icon' => $iconUrl
                     ]
                 )
             )
             ->data([
                 'orden_id' => (string) $this->order->orden_id,
                 'type'     => 'WorkOrderCreated',
+                // Convertir a JSON las estructuras anidadas para cumplir que los valores sean cadenas
+                'android'  => json_encode([
+                    'notification' => [
+                        'image' => $imageUrl
+                    ]
+                ]),
+                'apns'     => json_encode([
+                    'payload' => [
+                        'aps' => [
+                            'mutable-content' => '1'
+                        ]
+                    ],
+                    'fcm_options' => [
+                        'image' => $imageUrl
+                    ]
+                ]),
+                'webpush'  => json_encode([
+                    'headers' => [
+                        'image' => $imageUrl
+                    ]
+                ]),
             ]);
     }
 }
-

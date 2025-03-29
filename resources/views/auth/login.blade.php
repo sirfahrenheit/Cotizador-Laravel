@@ -13,6 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
   
   <style>
+    /* Tus estilos actuales */
     body {
       margin: 0;
       padding: 0;
@@ -77,11 +78,14 @@
     .btn-primary:hover {
       background-color: #00bcc5;
     }
+    .btn-primary:disabled {
+      background-color: #a0a0a0;
+      cursor: not-allowed;
+    }
     .form-check-label {
       font-size: 0.95rem;
       color: #555;
     }
-    /* Ajuste en el input-group para mostrar/ocultar contraseña */
     .input-group .form-control {
       border-right: none;
     }
@@ -125,21 +129,16 @@
 <body>
   <div class="login-container">
     <div class="login-card">
-      
       <!-- Contenedor del logo -->
       <div class="logo-container">
         <img src="{{ asset('images/mi-logo.png') }}" alt="Logo Jadi">
       </div>
-      
       <h1>Acceso Jadi</h1>
-      
       <!-- Formulario de Login -->
       <form method="POST" action="{{ route('login') }}">
         @csrf
-        
-        <!-- Campo oculto para FCM token (este valor se asigna mediante Firebase Messaging) -->
+        <!-- Campo oculto para FCM token -->
         <input type="hidden" name="fcm_token" id="fcm_token">
-        
         <!-- Correo Electrónico -->
         <div class="mb-3">
           <label for="email" class="form-label">Correo Electrónico</label>
@@ -153,8 +152,7 @@
             </span>
           @enderror
         </div>
-        
-        <!-- Contraseña con botón para mostrar/ocultar -->
+        <!-- Contraseña -->
         <div class="mb-3">
           <label for="password" class="form-label">Contraseña</label>
           <div class="input-group">
@@ -162,7 +160,6 @@
                    class="form-control @error('password') is-invalid @enderror"
                    name="password" required autocomplete="current-password">
             <button class="btn toggle-password-btn" type="button" id="btnTogglePassword">
-              <!-- Icono inicial: ojo -->
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8z"/>
                 <path d="M8 10.5A2.5 2.5 0 1 0 8 5.5a2.5 2.5 0 0 0 0 5z"/>
@@ -175,20 +172,16 @@
             </span>
           @enderror
         </div>
-        
         <!-- Recordar sesión -->
         <div class="mb-3 form-check">
           <input class="form-check-input" type="checkbox" name="remember" id="remember"
                  {{ old('remember') ? 'checked' : '' }}>
           <label class="form-check-label" for="remember">Recuérdame</label>
         </div>
-        
-        <!-- Botón de Acceder -->
+        <!-- Botón de Acceder: deshabilitado inicialmente -->
         <div class="d-grid mb-3">
-          <button type="submit" class="btn btn-primary">Acceder</button>
+          <button type="submit" class="btn btn-primary" id="loginSubmit" disabled>Acceder</button>
         </div>
-        
-        <!-- Enlace para recuperación de contraseña (opcional) -->
         @if (Route::has('password.request'))
           <div class="text-center">
             <a class="text-decoration-none" href="{{ route('password.request') }}">
@@ -207,8 +200,6 @@
   <script>
     const btnTogglePassword = document.getElementById('btnTogglePassword');
     const passwordInput = document.getElementById('password');
-    
-    // Iconos SVG
     const iconEye = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
       <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8z"/>
       <path d="M8 10.5A2.5 2.5 0 1 0 8 5.5a2.5 2.5 0 0 0 0 5z"/>
@@ -228,7 +219,7 @@
     });
   </script>
   
-  <!-- Firebase App (la SDK central de Firebase) -->
+  <!-- Firebase App (SDK central de Firebase) -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <!-- Firebase Messaging -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-messaging-compat.js"></script>
@@ -244,26 +235,59 @@
       measurementId: "G-5408RZKB88"
     };
 
-    // Inicializa Firebase
     firebase.initializeApp(firebaseConfig);
     
-    // Obtén la instancia de Firebase Messaging
     const messaging = firebase.messaging();
     
-    // Solicita permiso y obtiene el token FCM (usa la clave VAPID pública)
-    messaging.getToken({ vapidKey: 'BAJj9lRAIix4e0bUxD1MIR9XjpWLjObrgiQkYioWHLdCaw6Lqp4VxMPUozezfF7QK7YdJWq3jPXQNym88c362fM' })
-      .then((currentToken) => {
-        if (currentToken) {
-          console.log('FCM Token obtenido:', currentToken);
-          // Asigna el token al campo oculto del formulario
-          document.getElementById('fcm_token').value = currentToken;
-        } else {
-          console.log('No se pudo obtener el token. Se requiere permiso para notificaciones.');
-        }
-      })
-      .catch((err) => {
-        console.log('Error al obtener token FCM:', err);
-      });
+    // Registrar el service worker unificado y usarlo para obtener el token FCM
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/serviceworker.js')
+        .then(function(registration) {
+          console.log('Service Worker registrado con éxito, scope:', registration.scope);
+          // Esperar 2 segundos para que el SW se active y tenga control
+          setTimeout(() => {
+            messaging.getToken({ 
+              vapidKey: 'BAJj9lRAIix4e0bUxD1MIR9XjpWLjObrgiQkYioWHLdCaw6Lqp4VxMPUozezfF7QK7YdJWq3jPXQNym88c362fM',
+              serviceWorkerRegistration: registration
+            })
+              .then((currentToken) => {
+                if (currentToken) {
+                  console.log('FCM Token obtenido:', currentToken);
+                  document.getElementById('fcm_token').value = currentToken;
+                  // Habilita el botón de login
+                  document.getElementById('loginSubmit').disabled = false;
+                } else {
+                  console.log('No se pudo obtener el token. Se requiere permiso para notificaciones.');
+                }
+              })
+              .catch((err) => {
+                console.log('Error al obtener token FCM:', err);
+              });
+          }, 2000);
+        })
+        .catch(function(err) {
+          console.log('Error al registrar el service worker o al obtener el token FCM:', err);
+        });
+    }
+    
+    // Opcional: manejo de notificaciones en primer plano
+    messaging.onMessage((payload) => {
+      console.log('Notificación recibida en primer plano:', payload);
+      // Puedes mostrar una notificación personalizada o actualizar la UI aquí.
+    });
+  </script>
+  
+  <!-- Registrar nuevamente el Service Worker para PWA (opcional, si es necesario) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/serviceworker.js')
+        .then(function(registration) {
+          console.log('Service Worker PWA registrado con éxito, scope:', registration.scope);
+        })
+        .catch(function(error) {
+          console.log('Error al registrar el Service Worker PWA:', error);
+        });
+    }
   </script>
 </body>
 </html>

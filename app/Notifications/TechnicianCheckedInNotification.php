@@ -3,12 +3,13 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\Fcm\FcmChannel;
 use NotificationChannels\Fcm\FcmMessage;
 use NotificationChannels\Fcm\Resources\Notification as FcmNotification;
 
-class TechnicianCheckedInNotification extends Notification
+class TechnicianCheckedInNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -52,14 +53,18 @@ class TechnicianCheckedInNotification extends Notification
      */
     public function toFcm($notifiable)
     {
+        $title = 'Check-In de Técnico';
+        $body  = 'El técnico ID ' . $this->techId . ' realizó el check-in a las ' . $this->timestamp;
+        $iconUrl = 'https://distribuidorajadi.site/images/logo-notif.png';
+
         return FcmMessage::create()
             ->notification(
                 FcmNotification::create(
-                    'Check-In de Técnico',
-                    'El técnico ID ' . $this->techId . ' realizó el check-in a las ' . $this->timestamp,
-                    null,
+                    $title,
+                    $body,
+                    null, // Puedes incluir la URL de una imagen en este parámetro si lo deseas
                     [
-                        'icon' => 'https://distribuidorajadi.site/images/logo-notif.png'
+                        'icon' => $iconUrl
                     ]
                 )
             )
