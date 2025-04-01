@@ -27,8 +27,8 @@
             </div>
         @endif
 
-        <!-- Sección para Administradores -->
-        <h2>Resumen General</h2>
+        <!-- Sección para Administradores - Estadísticas del Mes -->
+        <h2>Resumen General - Estadísticas del Mes</h2>
         <div class="row">
             <!-- Caja: Autorizadas -->
             <div class="col-lg-2 col-md-6 col-sm-6">
@@ -170,7 +170,7 @@
                 </div>
             </div>
         @else
-            <!-- Si ya realizó el check-in, se muestran sus órdenes asignadas -->
+            <!-- Si ya realizó el check-in, se muestran sus órdenes asignadas que NO estén finalizadas -->
             <h2>Mis Órdenes de Trabajo</h2>
             @if($workOrders->isEmpty())
                 <div class="alert alert-info text-center">
@@ -179,21 +179,23 @@
             @else
                 <div class="row">
                     @foreach($workOrders as $order)
-                        <div class="col-md-4 col-sm-6 mb-3">
-                            <div class="card shadow-sm">
-                                <div class="card-header">
-                                    Orden #{{ $order->id }}
-                                </div>
-                                <div class="card-body">
-                                    <p><strong>Descripción:</strong> {{ $order->description ?? 'Sin descripción' }}</p>
-                                    <p><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</p>
-                                </div>
-                                <div class="card-footer text-right">
-                                    <a href="{{ route('tech.work_orders.show', $order) }}" class="btn btn-info btn-sm">Ver</a>
-                                    <a href="{{ route('tech.work_orders.edit', $order) }}" class="btn btn-warning btn-sm">Actualizar</a>
+                        @if($order->estado !== 'finalizado')
+                            <div class="col-md-4 col-sm-6 mb-3">
+                                <div class="card shadow-sm">
+                                    <div class="card-header">
+                                        Orden #{{ $order->id }}
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Tareas:</strong> {{ $order->tareas ?? 'Sin descripción' }}</p>
+                                        <p><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</p>
+                                    </div>
+                                    <div class="card-footer text-right">
+                                        <a href="{{ route('tech.work_orders.show', $order) }}" class="btn btn-info btn-sm">Ver</a>
+                                        <a href="{{ route('tech.work_orders.edit', $order) }}" class="btn btn-warning btn-sm">Actualizar</a>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        @endif
                     @endforeach
                 </div>
             @endif

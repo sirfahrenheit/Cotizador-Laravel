@@ -238,48 +238,52 @@ return [
     |
     */
 
-    'menu' => [
-        // Navbar items:
-        [
-            'type' => 'navbar-search',
-            'text' => 'search',
-            'topnav_right' => true,
-            'can'  => 'admin-only',
-        ],
-        [
-            'type' => 'fullscreen-widget',
-            'topnav_right' => true,
-        ],
-
-        // Sidebar items:
-        [
-            'text' => 'Dashboard',
-            'url'  => 'dashboard',
-            'icon' => 'fas fa-tachometer-alt',
-        ],
-        [
-            'text' => 'Órdenes de Trabajo',
-            'url'  => 'work_orders',
-            'icon' => 'fas fa-clipboard',
-        ],
-        [
-            'text' => 'Clientes',
-            'url'  => 'clients',
-            'icon' => 'fas fa-users',
-        ],
-        [
-            'text' => 'Productos',
-            'url'  => 'products',
-            'icon' => 'fas fa-box-open',
-        ],
-        [
-            'text' => 'Cotizaciones',
-            'url'  => 'cotizaciones',
-            'icon' => 'fas fa-file-alt',
-        ],
-        
-        
+ 'menu' => [
+    // Navbar items:
+    [
+        'type' => 'navbar-search',
+        'text' => 'search',
+        'topnav_right' => true,
+        'can'  => 'admin-only',
     ],
+    [
+        'type' => 'fullscreen-widget',
+        'topnav_right' => true,
+    ],
+
+    // Sidebar items:
+    [
+        'text' => 'Dashboard',
+        'url'  => 'dashboard',
+        'icon' => 'fas fa-tachometer-alt',
+    ],
+    [
+        'text' => 'Órdenes de Trabajo',
+        'url'  => 'work_orders',
+        'icon' => 'fas fa-clipboard',
+    ],
+    [
+        'text' => 'Clientes',
+        'url'  => 'clients',
+        'icon' => 'fas fa-users',
+    ],
+    [
+        'text' => 'Productos',
+        'url'  => 'products',
+        'icon' => 'fas fa-box-open',
+    ],
+    [
+        'text' => 'Cotizaciones',
+        'url'  => 'cotizaciones',
+        'icon' => 'fas fa-file-alt',
+    ],
+    [
+        'text' => 'Mapa de Check-ins',
+        'url'  => 'map-checkins',
+        'icon' => 'fas fa-map-marker-alt',
+       
+    ],
+],
 
     /*
     |--------------------------------------------------------------------------

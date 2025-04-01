@@ -94,7 +94,7 @@
                                 @php
                                     $whatsAppNumber = preg_replace('/\D/', '', $cotizacion->client->telefono);
                                     $message = urlencode("Hola {$cotizacion->client->nombre}, consulte la cotización #{$cotizacion->cotizacion_numero} en: " . route('quotes.public_view', ['token' => $cotizacion->cotizacion_token]));
-                                    $whatsAppLink = "https://wa.me/{$whatsAppNumber}?text={$message}";
+                                    $whatsAppLink = "https://wa.me/+502{$whatsAppNumber}?text={$message}";
                                 @endphp
                                 <a href="{{ $whatsAppLink }}" target="_blank" class="btn btn-success btn-sm mb-2">Enviar WhatsApp</a>
                             @endif

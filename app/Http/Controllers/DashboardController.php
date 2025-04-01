@@ -17,9 +17,6 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Dispara un evento de prueba (si aún lo usas)
-        event(new TestEvent('Mensaje de prueba'));
-
         $user = Auth::user();
         $role = strtolower(trim($user->role));
 
@@ -31,14 +28,19 @@ class DashboardController extends Controller
                 ->first();
 
             $isCheckedIn = $checkin ? true : false;
-            $workOrders = $isCheckedIn 
-                ? WorkOrder::where('tecnico_id', $user->id)->orderBy('fecha', 'desc')->get() 
+            // Filtrar solo órdenes asignadas que NO estén finalizadas
+            $workOrders = $isCheckedIn
+                ? WorkOrder::where('tecnico_id', $user->id)
+                    ->where('estado', '<>', 'finalizado')
+                    ->orderBy('fecha', 'desc')
+                    ->get()
                 : collect();
 
             return view('dashboard', [
                 'role'             => $role,
                 'isCheckedIn'      => $isCheckedIn,
                 'workOrders'       => $workOrders,
+                // Estadísticas admin no aplican para técnicos
                 'autorizadasCount' => null,
                 'pendientesCount'  => null,
                 'rechazadasCount'  => null,
@@ -52,18 +54,45 @@ class DashboardController extends Controller
                 'topProductsData'  => [],
             ]);
         } elseif ($role === 'admin') {
-            // Lógica para administradores
+            // Lógica para administradores: estadísticas solo para el mes actual
+            $now = Carbon::now('America/Guatemala');
+            $month = $now->month;
+            $year  = $now->year;
 
-            // Estadísticas generales
-            $autorizadasCount = Cotizacion::where('status', 'autorizada')->count();
-            $pendientesCount  = Cotizacion::where('status', 'pendiente')->count();
-            $rechazadasCount  = Cotizacion::where('status', 'rechazada')->count();
-            $vistasTotales    = Cotizacion::sum('view_count');
+            $autorizadasCount = Cotizacion::where('status', 'autorizada')
+                ->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
+                ->count();
+
+            $pendientesCount = Cotizacion::where('status', 'pendiente')
+                ->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
+                ->count();
+
+            $rechazadasCount = Cotizacion::where('status', 'rechazada')
+                ->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
+                ->count();
+
+            $vistasTotales = Cotizacion::whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
+                ->sum('view_count');
+
+            $totalQuoted = Cotizacion::whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
+                ->sum('total');
+
+            $totalSold = Cotizacion::where('status', 'autorizada')
+                ->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
+                ->sum('total');
 
             // Gráfica: Aceptadas por Cliente
             $aceptadasPorCliente = DB::table('cotizaciones')
                 ->select('cliente_id', DB::raw('count(*) as total'))
                 ->where('status', 'autorizada')
+                ->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
                 ->groupBy('cliente_id')
                 ->get();
 
@@ -80,6 +109,8 @@ class DashboardController extends Controller
             $rechazadasPorCliente = DB::table('cotizaciones')
                 ->select('cliente_id', DB::raw('count(*) as total'))
                 ->where('status', 'rechazada')
+                ->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
                 ->groupBy('cliente_id')
                 ->get();
 
@@ -92,56 +123,56 @@ class DashboardController extends Controller
                 $datosRechazadas[]    = $fila->total;
             }
 
-            // Totales en dinero
-            $totalQuoted = Cotizacion::sum('total');
-            $totalSold   = Cotizacion::where('status', 'autorizada')->sum('total');
-
             // Top products (opcional)
-            $topProductsData = QuoteItem::select('modelo', DB::raw('sum(quantity) as total_quantity'))
+            $topProductsData = [];
+            $topProducts = DB::table('quote_items')
+                ->select('modelo', DB::raw('sum(quantity) as total_quantity'))
                 ->groupBy('modelo')
                 ->orderByDesc('total_quantity')
                 ->limit(5)
-                ->pluck('total_quantity', 'modelo')
-                ->toArray();
+                ->get();
+            foreach ($topProducts as $item) {
+                $topProductsData[$item->modelo] = $item->total_quantity;
+            }
 
-            // **NUEVO: Recordatorio de actividades del día**
+            // Recordatorio de actividades del día (para hoy)
             $today = Carbon::today('America/Guatemala');
             $tomorrow = Carbon::tomorrow('America/Guatemala');
             $actividadesHoy = Actividad::whereBetween('fecha', [$today, $tomorrow])->get();
 
             return view('dashboard', [
-                'role'             => $role,
-                'isCheckedIn'      => false,
-                'workOrders'       => collect(),
-                'autorizadasCount' => $autorizadasCount,
-                'pendientesCount'  => $pendientesCount,
-                'rechazadasCount'  => $rechazadasCount,
-                'vistasTotales'    => $vistasTotales,
-                'clientesAceptadas'=> $clientesAceptadas,
-                'datosAceptadas'   => $datosAceptadas,
+                'role'              => $role,
+                'isCheckedIn'       => false,
+                'workOrders'        => collect(),
+                'autorizadasCount'  => $autorizadasCount,
+                'pendientesCount'   => $pendientesCount,
+                'rechazadasCount'   => $rechazadasCount,
+                'vistasTotales'     => $vistasTotales,
+                'clientesAceptadas' => $clientesAceptadas,
+                'datosAceptadas'    => $datosAceptadas,
                 'clientesRechazadas'=> $clientesRechazadas,
-                'datosRechazadas'  => $datosRechazadas,
-                'totalQuoted'      => $totalQuoted,
-                'totalSold'        => $totalSold,
-                'topProductsData'  => $topProductsData,
-                'actividadesHoy'   => $actividadesHoy,
+                'datosRechazadas'   => $datosRechazadas,
+                'totalQuoted'       => $totalQuoted,
+                'totalSold'         => $totalSold,
+                'topProductsData'   => $topProductsData,
+                'actividadesHoy'    => $actividadesHoy,
             ]);
         } else {
             return view('dashboard', [
-                'role'             => $role,
-                'isCheckedIn'      => false,
-                'workOrders'       => collect(),
-                'autorizadasCount' => null,
-                'pendientesCount'  => null,
-                'rechazadasCount'  => null,
-                'vistasTotales'    => null,
-                'clientesAceptadas'=> [],
-                'datosAceptadas'   => [],
+                'role'              => $role,
+                'isCheckedIn'       => false,
+                'workOrders'        => collect(),
+                'autorizadasCount'  => null,
+                'pendientesCount'   => null,
+                'rechazadasCount'   => null,
+                'vistasTotales'     => null,
+                'clientesAceptadas' => [],
+                'datosAceptadas'    => [],
                 'clientesRechazadas'=> [],
-                'datosRechazadas'  => [],
-                'totalQuoted'      => null,
-                'totalSold'        => null,
-                'topProductsData'  => [],
+                'datosRechazadas'   => [],
+                'totalQuoted'       => null,
+                'totalSold'         => null,
+                'topProductsData'   => [],
             ]);
         }
     }

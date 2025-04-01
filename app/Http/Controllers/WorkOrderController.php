@@ -18,6 +18,7 @@ use App\Events\WorkOrderCreated;
 // Importamos notificaciones para FCM
 use App\Notifications\TechnicianCheckedInNotification;
 use App\Notifications\WorkOrderCreatedNotification;
+use App\Notifications\WorkOrderUpdatedNotification;
 
 class WorkOrderController extends Controller
 {
@@ -249,7 +250,7 @@ class WorkOrderController extends Controller
     }
 
     /**
-     * Permite que el técnico actualice la orden asignada a él.
+     * Permite que el técnico actualice la orden asignada a él y notifica a administradores.
      */
     public function updateForTech(Request $request, WorkOrder $workOrder)
     {
@@ -273,8 +274,20 @@ class WorkOrderController extends Controller
         // Despachamos el evento de actualización de work order
         event(new WorkOrderUpdated($workOrder->id));
 
-        return redirect()->route('tech.work_orders.index')
+        // Notificar a los administradores sobre la actualización realizada por el técnico
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            $adminTokens = $admin->routeNotificationForFcm();
+            if (empty($adminTokens)) {
+                Log::warning('Administrador sin token FCM', ['admin_id' => $admin->id]);
+            } else {
+                Log::info('Notificando administrador por actualización de orden de trabajo', ['admin_id' => $admin->id, 'tokens' => $adminTokens]);
+                $admin->notify(new WorkOrderUpdatedNotification($workOrder));
+            }
+        }
+
+        // Redirigimos al detalle de la orden; pasamos el modelo completo para que se resuelva el binding
+        return redirect()->route('tech.work_orders.show', $workOrder)
             ->with('success', 'Orden de trabajo actualizada correctamente.');
     }
 }
-

@@ -21,7 +21,7 @@
     <form action="{{ route('actividades.store') }}" method="POST" id="actividadForm">
       @csrf
 
-      <!-- Selección de Cliente -->
+      <!-- Selección de Cliente con búsqueda -->
       <div class="mb-3">
          <label for="cliente_id" class="form-label">Cliente:</label>
          <select name="cliente_id" id="cliente_id" class="form-control" required>
@@ -69,17 +69,37 @@
 @stop
 
 @section('css')
+    <!-- Estilos personalizados para el select (opcional) -->
     <style>
-      /* Estilos adicionales en caso de necesitar ajustes personalizados */
-      @media (max-width: 768px) {
-          /* Ejemplo: Reducir padding o ajustar tamaños para móviles */
+      .custom-select-no-arrow {
+        -moz-appearance: none;
+        -webkit-appearance: none;
+        appearance: none;
+        background-color: #fff;
+        padding-right: 2.2rem;
+        background-position: right 0.75rem center;
+        background-repeat: no-repeat;
+        background-size: 1rem;
+      }
+      .custom-select-no-arrow::-ms-expand {
+        display: none;
       }
     </style>
+    <!-- CSS de Select2 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 @stop
 
 @section('js')
+    <!-- JS de Select2 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <script>
-      // Aquí puedes agregar scripts adicionales si lo requieres
+      $(document).ready(function() {
+          // Inicializa Select2 para el select de clientes
+          $('#cliente_id').select2({
+              placeholder: "Seleccione un cliente",
+              allowClear: true,
+              width: '100%'
+          });
+      });
     </script>
 @stop
-
